@@ -15,7 +15,12 @@
       "Bash(pnpm dev:frontend)",
       "Bash(echo \"frontend PID: $!\")",
       "Edit(/.claude/skills/p1-scaffold/**)",
-      "Edit(/.claude/skills/p1-backend-foundation/**)"
+      "Edit(/.claude/skills/p1-backend-foundation/**)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(python3 -m json.tool)",
+      "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" pnpm db:generate)",
+      "Bash(pnpm typecheck *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
