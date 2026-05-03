@@ -20,7 +20,13 @@
       "Bash(python3 -m json.tool)",
       "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" pnpm db:generate)",
       "Bash(pnpm typecheck *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Edit(/.claude/skills/p1-db-schema/**)",
+      "Bash(timeout 8 pnpm dev)",
+      "Bash(node -e \"const d = require\\('./node_modules/drizzle-orm/index.js'\\); console.log\\(typeof d.isNull, typeof d.and, typeof d.eq\\)\")"
+    ],
+    "additionalDirectories": [
+      "/Users/niteshdas/Projects/rag-support-sytem/.claude/skills"
     ]
   }
 }
