@@ -23,10 +23,11 @@
       "Bash(npx tsc *)",
       "Edit(/.claude/skills/p1-db-schema/**)",
       "Bash(timeout 8 pnpm dev)",
-      "Bash(node -e \"const d = require\\('./node_modules/drizzle-orm/index.js'\\); console.log\\(typeof d.isNull, typeof d.and, typeof d.eq\\)\")"
+      "Bash(node -e \"const d = require\\('./node_modules/drizzle-orm/index.js'\\); console.log\\(typeof d.isNull, typeof d.and, typeof d.eq\\)\")",
+      "Bash(pnpm --filter backend add node-fetch @mozilla/readability jsdom voyageai)",
+      "Bash(pnpm --filter backend add -D @types/node-fetch @types/jsdom @types/readability)",
+      "Bash(pnpm --filter backend add -D @types/node-fetch @types/jsdom)"
     ],
-    "additionalDirectories": [
-      "/Users/niteshdas/Projects/rag-support-sytem/.claude/skills"
-    ]
+    "additionalDirectories": ["/Users/niteshdas/Projects/rag-support-sytem/.claude/skills"]
   }
 }
