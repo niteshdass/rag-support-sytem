@@ -8,7 +8,9 @@
       "Bash(curl -s http://localhost:3000/health)",
       "Bash(kill %1)",
       "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm test)",
-      "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm run lint)"
+      "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm run lint)",
+      "Bash(npx vitest *)",
+      "Bash(git commit *)"
     ]
   }
 }
