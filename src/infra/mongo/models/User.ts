@@ -1,6 +1,10 @@
 import bcrypt from 'bcryptjs';
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
 import { z } from 'zod';
+import {
+  tenantScopePlugin,
+  type WithTenantScope,
+} from '../plugins/tenantScope.js';
 
 export const UserCreateSchema = z.object({
   tenantId: z.string().min(1),
@@ -41,6 +45,7 @@ const userSchema = new Schema<UserDocument>(
 );
 
 userSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+userSchema.plugin(tenantScopePlugin);
 
 userSchema.pre('save', async function () {
   if (!this.isModified('passwordHash')) return;
@@ -51,5 +56,6 @@ userSchema.methods.comparePassword = function (plain: string): Promise<boolean> 
   return bcrypt.compare(plain, this.passwordHash);
 };
 
-export const UserModel: Model<UserDocument> =
-  mongoose.models['User'] ?? mongoose.model<UserDocument>('User', userSchema);
+export const UserModel: WithTenantScope<UserDocument> = (
+  mongoose.models['User'] ?? mongoose.model<UserDocument>('User', userSchema)
+) as WithTenantScope<UserDocument>;
