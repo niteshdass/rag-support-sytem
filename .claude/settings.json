@@ -10,7 +10,14 @@
       "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm test)",
       "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm run lint)",
       "Bash(npx vitest *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(node -e \"import\\('gpt-tokenizer'\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\).catch\\(e => console.error\\(e.message\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem add src/domain/ingestion/chunker.ts tests/unit/chunker.test.ts package.json package-lock.json)",
+      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem commit -m ' *)",
+      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem status)",
+      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem diff)",
+      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem add .claude/settings.json .gitignore)"
     ]
   }
 }
