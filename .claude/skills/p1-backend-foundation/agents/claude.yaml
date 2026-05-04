@@ -1,4 +1,0 @@
-interface:
-  display_name: "P1-02 Backend Foundation"
-  short_description: "Implement env.ts (Zod validation), logger.ts (Pino), config.ts (typed config)"
-  default_prompt: "Use $p1-backend-foundation to implement backend/src/env.ts, logger.ts, and config.ts per CLAUDE.md Phase 1 strict rules."

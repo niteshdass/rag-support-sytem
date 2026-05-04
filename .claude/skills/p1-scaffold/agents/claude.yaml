@@ -1,4 +1,0 @@
-interface:
-  display_name: "P1-01 Monorepo Scaffold"
-  short_description: "Scaffold the pnpm monorepo for the RAG support system"
-  default_prompt: "Use $p1-scaffold to scaffold the pnpm monorepo — backend, frontend, packages/shared, docker-compose, CI, Husky, and all stub files per CLAUDE.md Phase 1."
