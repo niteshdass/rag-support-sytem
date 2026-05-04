@@ -12,9 +12,9 @@ app.use(express.json());
 app.use(tenantMiddleware);
 app.get('/debug', (req, res) => {
   res.json({
-    tenantId: req.tenantId.toString(),
-    userId: req.user._id.toString(),
-    userEmail: req.user.email,
+    tenantId: req.tenantId!.toString(),
+    userId: req.user!._id.toString(),
+    userEmail: req.user!.email,
   });
 });
 
