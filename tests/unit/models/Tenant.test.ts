@@ -9,6 +9,7 @@ describe('Tenant model', () => {
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
     await mongoose.connect(mongod.getUri());
+    await TenantModel.syncIndexes();
   });
 
   afterAll(async () => {
@@ -17,20 +18,26 @@ describe('Tenant model', () => {
   });
 
   it('create + find roundtrip', async () => {
-    await TenantModel.create({ name: 'acme-saas', plan: 'pro' });
-    const found = await TenantModel.findOne({ name: 'acme-saas' });
+    await TenantModel.create({ name: 'Acme SaaS', slug: 'acme-saas', plan: 'pro' });
+    const found = await TenantModel.findOne({ slug: 'acme-saas' });
     expect(found).not.toBeNull();
-    expect(found!.name).toBe('acme-saas');
+    expect(found!.name).toBe('Acme SaaS');
+    expect(found!.slug).toBe('acme-saas');
     expect(found!.plan).toBe('pro');
   });
 
   it('rejects duplicate name', async () => {
-    await TenantModel.create({ name: 'bytestore' });
-    await expect(TenantModel.create({ name: 'bytestore' })).rejects.toThrow();
+    await TenantModel.create({ name: 'Bytestore', slug: 'bytestore' });
+    await expect(TenantModel.create({ name: 'Bytestore', slug: 'bytestore-2' })).rejects.toThrow();
+  });
+
+  it('rejects duplicate slug', async () => {
+    await TenantModel.create({ name: 'Internal', slug: 'internal' });
+    await expect(TenantModel.create({ name: 'Internal 2', slug: 'internal' })).rejects.toThrow();
   });
 
   it('applies defaults correctly', async () => {
-    const tenant = await TenantModel.create({ name: 'defaults-test' });
+    const tenant = await TenantModel.create({ name: 'Defaults Test', slug: 'defaults-test' });
     expect(tenant.autoResolveEnabled).toBe(false);
     expect(tenant.confidenceThreshold).toBe(0.85);
     expect(tenant.apiKeys).toEqual([]);
@@ -39,11 +46,16 @@ describe('Tenant model', () => {
   });
 
   it('Zod schema validates and derives correct type', () => {
-    const result = TenantZodSchema.safeParse({ name: 'test-tenant' });
+    const result = TenantZodSchema.safeParse({ name: 'Test Tenant', slug: 'test-tenant' });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.autoResolveEnabled).toBe(false);
       expect(result.data.confidenceThreshold).toBe(0.85);
     }
+  });
+
+  it('Zod schema rejects invalid slug format', () => {
+    const result = TenantZodSchema.safeParse({ name: 'Bad Slug', slug: 'Bad Slug!' });
+    expect(result.success).toBe(false);
   });
 });

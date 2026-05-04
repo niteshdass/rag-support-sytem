@@ -16,9 +16,12 @@
     "seed": "tsx scripts/seed/index.ts"
   },
   "dependencies": {
+    "@types/express-session": "^1.19.0",
     "bcryptjs": "^3.0.3",
+    "connect-mongo": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
+    "express-session": "^1.19.0",
     "mongoose": "^9.6.1",
     "pino": "^9.2.0",
     "pino-pretty": "^11.2.1",

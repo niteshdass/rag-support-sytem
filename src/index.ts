@@ -1,5 +1,8 @@
+import MongoStore from 'connect-mongo';
 import express from 'express';
+import session from 'express-session';
 import { errorHandler } from './api/middleware/errorHandler.js';
+import { authRouter } from './api/routes/auth.js';
 import { env } from './config/env.js';
 import { connect, disconnect } from './infra/mongo/client.js';
 import { logger } from './observability/logger.js';
@@ -8,9 +11,25 @@ const app = express();
 
 app.use(express.json());
 
+app.use(
+  session({
+    secret: env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: env.MONGODB_URI }),
+    cookie: {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+  }),
+);
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
+
+app.use('/auth', authRouter);
 
 app.use(errorHandler);
 

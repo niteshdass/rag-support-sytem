@@ -1,4 +1,5 @@
-import express from 'express';
+import express, { type Request, type Response } from 'express';
+import session from 'express-session';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import request from 'supertest';
@@ -7,28 +8,46 @@ import { tenantMiddleware } from '../../../src/api/middleware/tenant.js';
 import { TenantModel } from '../../../src/infra/mongo/models/Tenant.js';
 import { UserModel } from '../../../src/infra/mongo/models/User.js';
 
-const app = express();
-app.use(express.json());
-app.use(tenantMiddleware);
-app.get('/debug', (req, res) => {
-  res.json({
-    tenantId: req.tenantId!.toString(),
-    userId: req.user!._id.toString(),
-    userEmail: req.user!.email,
+function buildApp() {
+  const app = express();
+  app.use(express.json());
+  app.use(
+    session({
+      secret: 'test-secret-that-is-long-enough-for-tests',
+      resave: false,
+      saveUninitialized: false,
+      cookie: { httpOnly: true },
+    }),
+  );
+  // Helper route so tests can inject a userId into the session without logging in
+  app.post('/test-session', (req: Request, res: Response) => {
+    req.session.userId = req.body.userId as string | undefined;
+    res.json({ ok: true });
   });
-});
+  app.use(tenantMiddleware);
+  app.get('/debug', (req: Request, res: Response) => {
+    res.json({
+      tenantId: req.tenantId!.toString(),
+      userId: req.user!._id.toString(),
+      userEmail: req.user!.email,
+    });
+  });
+  return app;
+}
 
-describe('tenantMiddleware', () => {
+describe('tenantMiddleware (session-based)', () => {
   let mongod: MongoMemoryServer;
+  let app: express.Express;
   let tenantId: string;
   let userId: string;
-  let otherUserId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
     await mongoose.connect(mongod.getUri());
 
-    const tenant = await TenantModel.create({ name: 'Acme' });
+    app = buildApp();
+
+    const tenant = await TenantModel.create({ name: 'Acme', slug: 'acme' });
     tenantId = tenant._id.toString();
 
     const user = await UserModel.create({
@@ -39,16 +58,6 @@ describe('tenantMiddleware', () => {
       name: 'Admin',
     });
     userId = user._id.toString();
-
-    const otherTenant = await TenantModel.create({ name: 'Other Corp' });
-    const otherUser = await UserModel.create({
-      tenantId: otherTenant._id,
-      email: 'admin@other.com',
-      passwordHash: 'pass12345',
-      role: 'admin',
-      name: 'Other Admin',
-    });
-    otherUserId = otherUser._id.toString();
   });
 
   afterAll(async () => {
@@ -56,58 +65,22 @@ describe('tenantMiddleware', () => {
     await mongod.stop();
   });
 
-  it('401 when no headers', async () => {
+  it('401 when no session', async () => {
     const res = await request(app).get('/debug');
     expect(res.status).toBe(401);
   });
 
-  it('401 when only X-Tenant-Id provided', async () => {
-    const res = await request(app).get('/debug').set('X-Tenant-Id', tenantId);
+  it('401 when session has unknown userId', async () => {
+    const agent = request.agent(app);
+    await agent.post('/test-session').send({ userId: new mongoose.Types.ObjectId().toString() });
+    const res = await agent.get('/debug');
     expect(res.status).toBe(401);
   });
 
-  it('401 when only X-User-Id provided', async () => {
-    const res = await request(app).get('/debug').set('X-User-Id', userId);
-    expect(res.status).toBe(401);
-  });
-
-  it('404 for malformed tenantId', async () => {
-    const res = await request(app)
-      .get('/debug')
-      .set('X-Tenant-Id', 'not-an-objectid')
-      .set('X-User-Id', userId);
-    expect(res.status).toBe(404);
-  });
-
-  it('404 for non-existent tenantId', async () => {
-    const res = await request(app)
-      .get('/debug')
-      .set('X-Tenant-Id', new mongoose.Types.ObjectId().toString())
-      .set('X-User-Id', userId);
-    expect(res.status).toBe(404);
-  });
-
-  it('404 for non-existent userId', async () => {
-    const res = await request(app)
-      .get('/debug')
-      .set('X-Tenant-Id', tenantId)
-      .set('X-User-Id', new mongoose.Types.ObjectId().toString());
-    expect(res.status).toBe(404);
-  });
-
-  it('403 when user belongs to a different tenant', async () => {
-    const res = await request(app)
-      .get('/debug')
-      .set('X-Tenant-Id', tenantId)
-      .set('X-User-Id', otherUserId);
-    expect(res.status).toBe(403);
-  });
-
-  it('200 and populates req.tenantId and req.user', async () => {
-    const res = await request(app)
-      .get('/debug')
-      .set('X-Tenant-Id', tenantId)
-      .set('X-User-Id', userId);
+  it('200 and populates req.tenantId and req.user from session', async () => {
+    const agent = request.agent(app);
+    await agent.post('/test-session').send({ userId });
+    const res = await agent.get('/debug');
     expect(res.status).toBe(200);
     expect(res.body.tenantId).toBe(tenantId);
     expect(res.body.userId).toBe(userId);

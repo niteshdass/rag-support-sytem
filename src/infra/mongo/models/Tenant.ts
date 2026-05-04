@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 export const TenantZodSchema = z.object({
   name: z.string().min(1),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
   plan: z.string().default('free'),
   settings: z.record(z.unknown()).default({}),
   apiKeys: z.array(z.string()).default([]),
@@ -17,6 +18,7 @@ export interface TenantDocument extends Tenant, Document {}
 const tenantSchema = new Schema<TenantDocument>(
   {
     name: { type: String, required: true, unique: true },
+    slug: { type: String, required: true, unique: true },
     plan: { type: String, required: true, default: 'free' },
     settings: { type: Schema.Types.Mixed, default: {} },
     apiKeys: { type: [String], default: [] },
