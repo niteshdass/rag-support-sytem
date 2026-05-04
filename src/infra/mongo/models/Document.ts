@@ -21,7 +21,7 @@ export const DocumentCreateSchema = z.object({
   metadata: z.record(z.unknown()).default({}),
   addedBy: z.string().min(1),
   status: z
-    .enum(['processing', 'ready', 'failed', 'purged'])
+    .enum(['processing', 'ready', 'failed', 'purging', 'purged'])
     .default('processing'),
   processingError: z.string().optional(),
 });
@@ -33,7 +33,7 @@ export const DocumentUpdateSchema = z.object({
   visibility: z.enum(['customer-facing', 'internal', 'draft']).optional(),
   tags: z.array(z.string()).optional(),
   metadata: z.record(z.unknown()).optional(),
-  status: z.enum(['processing', 'ready', 'failed', 'purged']).optional(),
+  status: z.enum(['processing', 'ready', 'failed', 'purging', 'purged']).optional(),
   processingError: z.string().optional(),
 });
 
@@ -55,7 +55,7 @@ export interface SupportDocument extends Document {
   tags: string[];
   metadata: Record<string, unknown>;
   addedBy: mongoose.Types.ObjectId;
-  status: 'processing' | 'ready' | 'failed' | 'purged';
+  status: 'processing' | 'ready' | 'failed' | 'purging' | 'purged';
   processingError?: string;
 }
 
@@ -86,7 +86,7 @@ const documentSchema = new Schema<SupportDocument>(
     addedBy: { type: Schema.Types.ObjectId, required: true },
     status: {
       type: String,
-      enum: ['processing', 'ready', 'failed', 'purged'],
+      enum: ['processing', 'ready', 'failed', 'purging', 'purged'],
       required: true,
       default: 'processing',
     },
