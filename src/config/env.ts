@@ -8,6 +8,8 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   STORAGE_DRIVER: z.enum(['local']).default('local'),
   QDRANT_URL: z.string().url().default('http://localhost:6333'),
+  MEILI_URL: z.string().url().default('http://localhost:7700'),
+  MEILI_MASTER_KEY: z.string().default(''),
 });
 
 const parsed = envSchema.safeParse(process.env);
