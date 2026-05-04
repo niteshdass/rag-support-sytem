@@ -7,6 +7,7 @@ const envSchema = z.object({
   MONGODB_URI: z.string().url(),
   SESSION_SECRET: z.string().min(32),
   STORAGE_DRIVER: z.enum(['local']).default('local'),
+  QDRANT_URL: z.string().url().default('http://localhost:6333'),
 });
 
 const parsed = envSchema.safeParse(process.env);

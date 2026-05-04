@@ -144,6 +144,24 @@ pm2 flush           # clear log files
 
 ---
 
+## Running Qdrant integration tests
+
+The Qdrant client tests (`tests/integration/qdrant-client.test.ts`) require a live Qdrant instance. They are **skipped automatically** when Qdrant is not reachable — the regular test suite always passes without it.
+
+To run them:
+
+```bash
+# Start Qdrant (binary must be in ./bin/)
+./bin/qdrant &
+
+# Run only the Qdrant tests
+QDRANT_URL=http://localhost:6333 npx vitest run tests/integration/qdrant-client.test.ts
+```
+
+If `QDRANT_URL` is not set in your `.env`, the tests are skipped silently.
+
+---
+
 ## Common issues
 
 **`Invalid environment variables`** on startup  
