@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(MONGODB_URI=mongodb://localhost:27017/supportpilot-dev npm run lint)",
+      "Bash(MONGODB_URI=mongodb://localhost:27017/supportpilot-dev npm run test)",
+      "Bash(MONGODB_URI=mongodb://localhost:27017/supportpilot-dev PORT=3000 npm run dev)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(kill %1)",
+      "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm test)",
+      "Bash(MONGODB_URI=mongodb://localhost:27017/dev npm run lint)"
+    ]
+  }
+}
