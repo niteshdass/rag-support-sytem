@@ -21,6 +21,7 @@ export interface PipelineAnswer {
   confidence: number;
   route: 'auto' | 'draft';
   traceId: string;
+  retrievedContexts: string[];
 }
 
 export type EmbedFn = (texts: string[]) => Promise<Float32Array[]>;
@@ -115,6 +116,13 @@ export class RAGPipeline {
       'pipeline: done',
     );
 
-    return { text: generated.text, citations: generated.citations, confidence, route, traceId };
+    return {
+      text: generated.text,
+      citations: generated.citations,
+      confidence,
+      route,
+      traceId,
+      retrievedContexts: reranked.map(c => c.text),
+    };
   }
 }
