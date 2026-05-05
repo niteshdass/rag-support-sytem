@@ -16,7 +16,10 @@
     "seed": "tsx scripts/seed/index.ts",
     "seed:reset": "tsx scripts/seed/index.ts --reset",
     "seed:tenant": "tsx scripts/seed/index.ts --tenant",
-    "dev:web": "cd web && npm run dev"
+    "dev:web": "cd web && npm run dev",
+    "eval": "tsx scripts/eval/runEval.ts",
+    "eval:fresh": "npm run seed && npm run eval",
+    "eval:diff": "tsx scripts/eval/evalDiff.ts"
   },
   "dependencies": {
     "@qdrant/js-client-rest": "^1.17.0",

@@ -1,0 +1,128 @@
+name: RAG eval
+
+on:
+  pull_request:
+    paths:
+      - 'src/domain/rag/**'
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      MONGODB_URI: mongodb://localhost:27017/supportpilot-eval
+      LLM_PROVIDER: groq
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      EMBED_MODEL: Xenova/bge-small-en-v1.5
+      RERANKER_MODEL: Xenova/bge-reranker-base
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download and start Qdrant
+        run: |
+          QDRANT_VERSION=v1.9.2
+          curl -sL "https://github.com/qdrant/qdrant/releases/download/${QDRANT_VERSION}/qdrant-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz qdrant
+          ./qdrant &
+          echo "QDRANT_PID=$!" >> "$GITHUB_ENV"
+          # wait for Qdrant to be ready
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:6333/healthz && break || sleep 2
+          done
+
+      - name: Download and start Meilisearch
+        run: |
+          curl -sL https://install.meilisearch.com | sh
+          ./meilisearch --no-analytics &
+          echo "MEILI_PID=$!" >> "$GITHUB_ENV"
+          # wait for Meilisearch to be ready
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:7700/health && break || sleep 2
+          done
+        env:
+          MEILI_ENV: development
+
+      - name: Seed demo data
+        run: npm run seed
+
+      - name: Run eval
+        id: run_eval
+        run: |
+          npm run eval 2>&1 | tee eval_output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract eval summary
+        id: summary
+        if: always()
+        run: |
+          # Capture aggregate metrics block from eval output
+          SUMMARY=$(grep -A 15 "Aggregate metrics:" eval_output.txt || echo "(no metrics found)")
+          # Escape for GitHub Actions multiline output
+          {
+            echo "text<<EOF"
+            echo "$SUMMARY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exitCode = '${{ steps.run_eval.outputs.exit_code }}';
+            const status = exitCode === '0' ? '✅ passed' : '❌ failed';
+            const summary = `${{ steps.summary.outputs.text }}`;
+            const sha = context.payload.pull_request.head.sha.slice(0, 7);
+
+            const body = [
+              `### RAG eval — ${status}`,
+              '',
+              `**Commit:** \`${sha}\``,
+              '',
+              '```',
+              summary,
+              '```',
+              '',
+              '_Triggered by changes to `src/domain/rag/**`. Run `npm run eval:diff <baseline-sha>` locally to compare._',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            });
+
+      - name: Fail if eval failed
+        if: steps.run_eval.outputs.exit_code != '0'
+        run: exit 1
