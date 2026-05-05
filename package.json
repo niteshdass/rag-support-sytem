@@ -15,7 +15,8 @@
     "test": "vitest run",
     "seed": "tsx scripts/seed/index.ts",
     "seed:reset": "tsx scripts/seed/index.ts --reset",
-    "seed:tenant": "tsx scripts/seed/index.ts --tenant"
+    "seed:tenant": "tsx scripts/seed/index.ts --tenant",
+    "dev:web": "cd web && npm run dev"
   },
   "dependencies": {
     "@qdrant/js-client-rest": "^1.17.0",
