@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { cn } from '../lib/utils'
 import UserMenu from './UserMenu'
 
@@ -15,9 +15,11 @@ export default function AppShell() {
     <div className="flex h-screen bg-background">
       <aside className="w-64 border-r flex flex-col shrink-0">
         <div className="h-14 flex items-center px-4 border-b shrink-0">
-          <span className="text-sm font-semibold">SupportPilot</span>
+          <Link to="/" className="text-sm font-semibold hover:opacity-80 transition-opacity">
+            SupportPilot
+          </Link>
         </div>
-        <nav className="flex flex-col gap-1 p-2 flex-1">
+        <nav aria-label="Main navigation" className="flex flex-col gap-1 p-2 flex-1">
           {NAV_ITEMS.map(({ label, to }) => (
             <NavLink
               key={to}
