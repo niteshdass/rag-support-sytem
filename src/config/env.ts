@@ -14,6 +14,9 @@ const envSchema = z.object({
   OLLAMA_URL: z.string().url().default('http://localhost:11434'),
   OLLAMA_MODEL: z.string().default('llama3.1:8b'),
   GROQ_API_KEY: z.string().optional(),
+  LANGFUSE_HOST: z.string().url().optional(),
+  LANGFUSE_PUBLIC_KEY: z.string().optional(),
+  LANGFUSE_SECRET_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
