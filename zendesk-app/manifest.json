@@ -1,0 +1,33 @@
+{
+  "name": "SupportPilot Copilot",
+  "author": {
+    "name": "SupportPilot",
+    "email": "support@supportpilot.com"
+  },
+  "defaultLocale": "en",
+  "private": true,
+  "location": {
+    "support": {
+      "ticket_sidebar": {
+        "url": "assets/iframe.html"
+      }
+    }
+  },
+  "version": "1.0.0",
+  "frameworkVersion": "2.0",
+  "parameters": [
+    {
+      "name": "api_url",
+      "type": "text",
+      "required": true,
+      "secure": false,
+      "default": "http://localhost:3000"
+    },
+    {
+      "name": "api_key",
+      "type": "text",
+      "required": true,
+      "secure": true
+    }
+  ]
+}

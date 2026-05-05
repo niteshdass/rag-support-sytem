@@ -4,6 +4,7 @@ import session from 'express-session';
 import { errorHandler } from './api/middleware/errorHandler.js';
 import { adminRouter } from './api/routes/admin/index.js';
 import { authRouter } from './api/routes/auth.js';
+import { copilotRouter } from './api/routes/copilot.js';
 import { queryRouter } from './api/routes/query.js';
 import { zendeskWebhookRouter } from './api/routes/webhooks/zendesk.js';
 import { env } from './config/env.js';
@@ -35,6 +36,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/admin', adminRouter);
+app.use('/copilot', copilotRouter);
 app.use('/query', queryRouter);
 app.use('/webhooks/zendesk', zendeskWebhookRouter);
 
