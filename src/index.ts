@@ -5,6 +5,7 @@ import { errorHandler } from './api/middleware/errorHandler.js';
 import { adminRouter } from './api/routes/admin/index.js';
 import { authRouter } from './api/routes/auth.js';
 import { queryRouter } from './api/routes/query.js';
+import { zendeskWebhookRouter } from './api/routes/webhooks/zendesk.js';
 import { env } from './config/env.js';
 import { connect, disconnect } from './infra/mongo/client.js';
 import { startWorker, stopWorker } from './jobs/index.js';
@@ -35,6 +36,7 @@ app.get('/health', (_req, res) => {
 app.use('/auth', authRouter);
 app.use('/admin', adminRouter);
 app.use('/query', queryRouter);
+app.use('/webhooks/zendesk', zendeskWebhookRouter);
 
 app.use(errorHandler);
 
