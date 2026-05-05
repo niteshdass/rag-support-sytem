@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1001,
+    "title": "Getting Started with Acme SaaS",
+    "html_url": "https://acme-saas.zendesk.com/hc/en-us/articles/1001",
+    "body": "<h1>Getting Started</h1><p>Welcome to <strong>Acme SaaS</strong>. This guide walks you through your first project setup.</p><h2>Step 1: Create a project</h2><p>Click <strong>New Project</strong> in the dashboard and fill in a name and description.</p><h2>Step 2: Invite your team</h2><p>Go to <em>Settings &gt; Members</em> and enter your teammates' email addresses.</p>",
+    "updated_at": "2026-04-01T10:00:00Z"
+  },
+  {
+    "id": 1002,
+    "title": "How to Reset Your Password",
+    "html_url": "https://acme-saas.zendesk.com/hc/en-us/articles/1002",
+    "body": "<h1>Password Reset</h1><p>If you have forgotten your password, click <strong>Forgot Password</strong> on the login page.</p><p>A reset link will be emailed to your registered address and is valid for <strong>24 hours</strong>.</p>",
+    "updated_at": "2026-04-02T10:00:00Z"
+  },
+  {
+    "id": 1003,
+    "title": "Billing and Subscription Plans",
+    "html_url": "https://acme-saas.zendesk.com/hc/en-us/articles/1003",
+    "body": "<h1>Billing</h1><p>Acme SaaS offers three plans: <strong>Starter</strong>, <strong>Growth</strong>, and <strong>Enterprise</strong>.</p><ul><li>Starter: up to 5 users, $29/month</li><li>Growth: up to 50 users, $99/month</li><li>Enterprise: unlimited users, custom pricing</li></ul><p>All plans include a 14-day free trial. No credit card required.</p>",
+    "updated_at": "2026-04-03T10:00:00Z"
+  },
+  {
+    "id": 1004,
+    "title": "Exporting Your Data",
+    "html_url": "https://acme-saas.zendesk.com/hc/en-us/articles/1004",
+    "body": "<h1>Data Export</h1><p>You can export all project data as a CSV or JSON file.</p><p>Navigate to <em>Settings &gt; Data &gt; Export</em> and choose your format. Large exports may take a few minutes to prepare; you will receive an email with a download link when ready.</p>",
+    "updated_at": "2026-04-04T10:00:00Z"
+  },
+  {
+    "id": 1005,
+    "title": "API Keys and Authentication",
+    "html_url": "https://acme-saas.zendesk.com/hc/en-us/articles/1005",
+    "body": "<h1>API Keys</h1><p>Generate API keys under <em>Settings &gt; API</em>. Each key is scoped to either <strong>read-only</strong> or <strong>read-write</strong>.</p><p>Include the key in the <code>Authorization: Bearer &lt;key&gt;</code> header on every request. Rotate keys immediately if they are ever exposed.</p>",
+    "updated_at": "2026-04-05T10:00:00Z"
+  }
+]
