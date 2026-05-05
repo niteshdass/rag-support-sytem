@@ -2,6 +2,7 @@ import Agenda, { type Job } from 'agenda';
 import { env } from '../config/env.js';
 import { logger } from '../observability/logger.js';
 import { defineIngestDocument } from './ingestDocument.js';
+import { defineSyncSource } from './syncSource.js';
 import type { JobQueue } from '../domain/knowledge/documentService.js';
 
 const JOB_COLLECTION = 'jobs';
@@ -39,6 +40,7 @@ export async function startWorker(): Promise<void> {
   const agenda = getAgenda();
 
   defineIngestDocument(agenda);
+  defineSyncSource(agenda, getJobQueue());
 
   agenda.on('fail', (err: Error, job: Job) => {
     logger.error({ err, jobName: job.attrs.name, data: job.attrs.data }, 'agenda job failed');
