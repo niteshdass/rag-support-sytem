@@ -7,6 +7,7 @@ export interface ConnectorDocument {
   url?: string;
   content: string;
   mimeType?: string;
+  visibility?: 'customer-facing' | 'internal' | 'draft';
   metadata?: Record<string, unknown>;
 }
 

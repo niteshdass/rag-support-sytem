@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { z } from 'zod';
 import type { HydratedDocument } from 'mongoose';
 import { htmlParser } from '../parsers/html.js';
@@ -13,6 +12,7 @@ const ZendeskConfigSchema = z.object({
   apiToken: z.string().min(1),
   fixtureMode: z.boolean().optional(),
   fixturePath: z.string().optional(),
+  ticketFixturePath: z.string().optional(),
 });
 
 type ZendeskConfig = z.infer<typeof ZendeskConfigSchema>;
@@ -30,19 +30,59 @@ interface ZendeskArticlesResponse {
   next_page: string | null;
 }
 
+interface ZendeskTicket {
+  id: number;
+  subject: string;
+  description: string;
+  status: string;
+  is_public: boolean;
+  requester_id: number;
+  tags: string[];
+  updated_at: string;
+}
+
+interface ZendeskTicketsResponse {
+  tickets: ZendeskTicket[];
+  next_page: string | null;
+}
+
+interface ZendeskComment {
+  id: number;
+  body: string;
+  public: boolean;
+  author_id: number;
+}
+
+interface ZendeskCommentsResponse {
+  comments: ZendeskComment[];
+}
+
+interface ZendeskTicketFixture extends ZendeskTicket {
+  resolution: string;
+}
+
 const DEFAULT_FIXTURE_PATH = new URL(
   '../../../../scripts/seed/fixtures/zendesk-articles.json',
   import.meta.url,
 ).pathname;
 
-async function* fetchArticlesHttp(
-  config: ZendeskConfig,
-): AsyncIterable<ZendeskArticle> {
+const DEFAULT_TICKET_FIXTURE_PATH = new URL(
+  '../../../../scripts/seed/fixtures/zendesk-tickets.json',
+  import.meta.url,
+).pathname;
+
+function makeAuthHeaders(config: ZendeskConfig): Record<string, string> {
   const credentials = Buffer.from(`${config.email}/token:${config.apiToken}`).toString('base64');
-  const headers = {
+  return {
     Authorization: `Basic ${credentials}`,
     'Content-Type': 'application/json',
   };
+}
+
+async function* fetchArticlesHttp(
+  config: ZendeskConfig,
+): AsyncIterable<ZendeskArticle> {
+  const headers = makeAuthHeaders(config);
 
   let url: string | null =
     `https://${config.subdomain}.zendesk.com/api/v2/help_center/articles.json?per_page=100`;
@@ -80,6 +120,61 @@ async function articleToConnectorDoc(article: ZendeskArticle): Promise<Connector
   };
 }
 
+async function* fetchTicketsHttp(config: ZendeskConfig): AsyncIterable<ConnectorDocument> {
+  const headers = makeAuthHeaders(config);
+
+  let url: string | null =
+    `https://${config.subdomain}.zendesk.com/api/v2/tickets.json?status=solved&per_page=100`;
+
+  while (url !== null) {
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error(`Zendesk API error: ${response.status} ${response.statusText}`);
+    }
+    const data = (await response.json()) as ZendeskTicketsResponse;
+
+    for (const ticket of data.tickets) {
+      const commentsRes = await fetch(
+        `https://${config.subdomain}.zendesk.com/api/v2/tickets/${ticket.id}/comments.json`,
+        { headers },
+      );
+      let resolution = '';
+      if (commentsRes.ok) {
+        const commentsData = (await commentsRes.json()) as ZendeskCommentsResponse;
+        const last = commentsData.comments[commentsData.comments.length - 1];
+        resolution = last?.body ?? '';
+      }
+      yield ticketToConnectorDoc(ticket, resolution);
+    }
+
+    url = data.next_page;
+  }
+}
+
+async function* fetchTicketsFixture(fixturePath: string): AsyncIterable<ConnectorDocument> {
+  const raw = await readFile(fixturePath, 'utf-8');
+  const tickets = JSON.parse(raw) as ZendeskTicketFixture[];
+  for (const ticket of tickets) {
+    yield ticketToConnectorDoc(ticket, ticket.resolution);
+  }
+}
+
+function ticketToConnectorDoc(ticket: ZendeskTicket, resolution: string): ConnectorDocument {
+  return {
+    externalId: `ticket:${ticket.id}`,
+    title: ticket.subject,
+    content: `Subject: ${ticket.subject}\nQuestion: ${ticket.description}\nResolution: ${resolution}`,
+    mimeType: 'text/plain',
+    visibility: ticket.is_public ? 'customer-facing' : 'internal',
+    metadata: {
+      ticketId: ticket.id,
+      requesterId: ticket.requester_id,
+      tags: ticket.tags,
+      resolvedAt: ticket.updated_at,
+    },
+  };
+}
+
 registerConnector({
   type: 'zendesk',
 
@@ -92,11 +187,23 @@ registerConnector({
         ? fetchArticlesFixture(config.fixturePath ?? DEFAULT_FIXTURE_PATH)
         : fetchArticlesHttp(config);
 
-    let count = 0;
+    let articleCount = 0;
     for await (const article of articles) {
       yield await articleToConnectorDoc(article);
-      count++;
+      articleCount++;
     }
-    log.info({ count }, 'zendesk sync complete');
+
+    const tickets =
+      config.fixtureMode === true
+        ? fetchTicketsFixture(config.ticketFixturePath ?? DEFAULT_TICKET_FIXTURE_PATH)
+        : fetchTicketsHttp(config);
+
+    let ticketCount = 0;
+    for await (const doc of tickets) {
+      yield doc;
+      ticketCount++;
+    }
+
+    log.info({ articleCount, ticketCount }, 'zendesk sync complete');
   },
 });

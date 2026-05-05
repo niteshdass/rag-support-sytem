@@ -4,8 +4,10 @@ import session from 'express-session';
 import { errorHandler } from './api/middleware/errorHandler.js';
 import { adminRouter } from './api/routes/admin/index.js';
 import { authRouter } from './api/routes/auth.js';
+import { queryRouter } from './api/routes/query.js';
 import { env } from './config/env.js';
 import { connect, disconnect } from './infra/mongo/client.js';
+import { startWorker, stopWorker } from './jobs/index.js';
 import { logger } from './observability/logger.js';
 
 const app = express();
@@ -32,11 +34,13 @@ app.get('/health', (_req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/admin', adminRouter);
+app.use('/query', queryRouter);
 
 app.use(errorHandler);
 
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'shutting down');
+  await stopWorker();
   await disconnect();
   process.exit(0);
 }
@@ -45,6 +49,7 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 await connect();
+await startWorker();
 
 app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'SupportPilot API started');

@@ -73,8 +73,8 @@ const documentSchema = new Schema<SupportDocument>(
     fileMimeType: { type: String },
     title: { type: String, required: true },
     url: { type: String },
-    content: { type: String, required: true },
-    contentHash: { type: String, required: true },
+    content: { type: String, default: '' },
+    contentHash: { type: String, default: '' },
     visibility: {
       type: String,
       enum: ['customer-facing', 'internal', 'draft'],

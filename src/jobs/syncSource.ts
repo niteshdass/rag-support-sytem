@@ -37,7 +37,7 @@ export async function runSyncSource(sourceId: string, jobQueue: JobQueue): Promi
         title: connDoc.title,
         ...(connDoc.url !== undefined && { url: connDoc.url }),
         content: connDoc.content,
-        visibility: 'customer-facing',
+        visibility: connDoc.visibility ?? 'customer-facing',
         addedBy: source.addedBy.toString(),
       });
       count++;

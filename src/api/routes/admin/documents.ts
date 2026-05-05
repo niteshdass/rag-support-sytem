@@ -6,7 +6,7 @@ import * as meili from '../../../infra/meilisearch/client.js';
 import { type Visibility } from '../../../infra/meilisearch/client.js';
 import { purgeService } from '../../../domain/knowledge/purgeService.js';
 import { tenantMiddleware } from '../../middleware/tenant.js';
-import { DocumentListQuerySchema } from '../../validators/documents.js';
+import { DocumentListQuerySchema, UpdateVisibilityBodySchema } from '../../validators/documents.js';
 
 const CONTENT_TRUNCATE = 5000;
 const ALL_VISIBILITIES: [Visibility, Visibility, Visibility] = [
@@ -27,7 +27,7 @@ router.get(
       return;
     }
 
-    const { q, visibility, sourceId, status, page, pageSize } = parsed.data;
+    const { q, visibility, sourceId, sourceType, status, page, pageSize } = parsed.data;
     const tenantId = req.tenantId!.toString();
 
     try {
@@ -54,6 +54,7 @@ router.get(
           _id: { $in: orderedIds.map(id => new mongoose.Types.ObjectId(id)) },
         };
         if (status) mongoFilter.status = status;
+        if (sourceType) mongoFilter.sourceType = sourceType;
         if (sourceId) mongoFilter.sourceId = new mongoose.Types.ObjectId(sourceId);
 
         const docs = await DocumentModel.forTenant(tenantId)
@@ -70,6 +71,7 @@ router.get(
       const mongoFilter: Record<string, unknown> = {};
       if (visibility) mongoFilter.visibility = visibility;
       if (sourceId) mongoFilter.sourceId = new mongoose.Types.ObjectId(sourceId);
+      if (sourceType) mongoFilter.sourceType = sourceType;
       if (status) mongoFilter.status = status;
 
       const skip = (page - 1) * pageSize;
@@ -153,6 +155,45 @@ router.get(
         .sort({ position: 1 });
 
       res.json({ chunks, total: chunks.length });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.patch(
+  '/:id/visibility',
+  tenantMiddleware,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const tenantId = req.tenantId!.toString();
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(404).json({ error: 'document not found' });
+      return;
+    }
+
+    const parsed = UpdateVisibilityBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+
+    try {
+      const doc = await DocumentModel.forTenant(tenantId)
+        .findOneAndUpdate(
+          { _id: new mongoose.Types.ObjectId(id) },
+          { $set: { visibility: parsed.data.visibility } },
+          { new: true },
+        )
+        .select('-content');
+
+      if (!doc) {
+        res.status(404).json({ error: 'document not found' });
+        return;
+      }
+
+      res.json(doc);
     } catch (err) {
       next(err);
     }

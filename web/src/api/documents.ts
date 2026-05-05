@@ -90,3 +90,49 @@ export function getDocument(id: string): Promise<DocumentDetail> {
 export function getDocumentChunks(id: string): Promise<ChunksResponse> {
   return apiFetch<ChunksResponse>(`/admin/documents/${id}/chunks`);
 }
+
+export interface PasteResponse {
+  documentId: string;
+  status: Status;
+}
+
+export function pasteDocument(body: {
+  title?: string;
+  content: string;
+  visibility: Visibility;
+  tags?: string[];
+}): Promise<PasteResponse> {
+  return apiFetch<PasteResponse>('/admin/paste', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export interface UploadResponse {
+  documentId: string;
+  status: Status;
+}
+
+export async function uploadDocument(
+  file: File,
+  visibility: Visibility,
+  tags: string[],
+): Promise<UploadResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('visibility', visibility);
+  form.append('tags', tags.join(','));
+
+  const res = await fetch('/api/admin/uploads', {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error((body as { error?: string }).error ?? res.statusText);
+  }
+
+  return res.json() as Promise<UploadResponse>;
+}

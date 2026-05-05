@@ -2,11 +2,13 @@ import crypto from 'node:crypto';
 import Agenda, { type Job } from 'agenda';
 import mongoose from 'mongoose';
 import { chunk } from '../domain/ingestion/chunker.js';
+import { getParser } from '../domain/ingestion/parsers/index.js';
 import { embedWithCache } from '../domain/embeddings/cachedEmbedder.js';
 import { DocumentModel } from '../infra/mongo/models/Document.js';
 import { ChunkModel } from '../infra/mongo/models/Chunk.js';
 import * as qdrant from '../infra/qdrant/client.js';
 import * as meili from '../infra/meilisearch/client.js';
+import { getStorage } from '../infra/storage/index.js';
 import { logger } from '../observability/logger.js';
 
 const QDRANT_COLLECTION = 'chunks';
@@ -31,14 +33,27 @@ export async function runIngestDocument(documentId: string): Promise<void> {
   const tenantId = doc.tenantId.toString();
 
   try {
-    // 1. Chunk
-    const rawChunks = chunk(doc.content);
+    // 1. Resolve content — for file uploads, parse from stored file
+    let contentText = doc.content;
+    if (doc.fileKey && doc.fileMimeType) {
+      const storage = getStorage();
+      const { buffer } = await storage.get(tenantId, doc.fileKey);
+      const parser = getParser(doc.fileMimeType);
+      const parsed = await parser.parse(buffer, doc.fileMimeType);
+      contentText = parsed.content;
+      await DocumentModel.findByIdAndUpdate(documentId, {
+        $set: { content: contentText, title: doc.title || parsed.title || doc.fileKey },
+      });
+    }
+
+    // 2. Chunk
+    const rawChunks = chunk(contentText);
     if (rawChunks.length === 0) {
       throw new Error('Chunker produced 0 chunks');
     }
     log.info({ chunkCount: rawChunks.length }, 'chunked');
 
-    // 2. Embed (with MongoDB-backed cache)
+    // 3. Embed (with MongoDB-backed cache)
     const vectors = await embedWithCache(rawChunks.map(c => c.text));
 
     // 3. Ensure storage backends are ready

@@ -12,7 +12,7 @@ export interface DocumentAddInput {
   sourceType: 'connector' | 'upload' | 'paste' | 'crawl';
   title?: string;
   url?: string;
-  content: string;
+  content?: string;
   fileKey?: string;
   fileMimeType?: string;
   externalId?: string;
@@ -25,7 +25,8 @@ export class DocumentService {
   constructor(private readonly jobQueue: JobQueue) {}
 
   async add(input: DocumentAddInput): Promise<HydratedDocument<SupportDocument>> {
-    const contentHash = crypto.createHash('sha256').update(input.content).digest('hex');
+    const content = input.content ?? '';
+    const contentHash = content ? crypto.createHash('sha256').update(content).digest('hex') : '';
 
     const tenantId = new mongoose.Types.ObjectId(input.tenantId);
     const sourceId = new mongoose.Types.ObjectId(input.sourceId);
@@ -37,7 +38,7 @@ export class DocumentService {
       sourceType: input.sourceType,
       title: input.title ?? 'Untitled',
       url: input.url,
-      content: input.content,
+      content,
       contentHash,
       fileKey: input.fileKey,
       fileMimeType: input.fileMimeType,

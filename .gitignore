@@ -6,3 +6,16 @@ data/
 .DS_Store
 coverage/
 logs/
+
+# Runtime binaries
+qdrant
+meilisearch
+
+# Runtime data dirs
+data.ms/
+storage/
+.qdrant-initialized
+
+# Tool dirs
+.playwright-mcp/
+

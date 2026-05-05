@@ -26,6 +26,11 @@ export interface TenantScope<D extends Document> {
   deleteMany(
     filter?: FilterQuery<D>,
   ): mongoose.Query<mongoose.mongo.DeleteResult, HydratedDocument<D>>;
+  findOneAndUpdate(
+    filter: FilterQuery<D>,
+    update: UpdateQuery<D>,
+    options?: QueryOptions & { new?: boolean },
+  ): mongoose.Query<HydratedDocument<D> | null, HydratedDocument<D>>;
   countDocuments(
     filter?: FilterQuery<D>,
   ): mongoose.Query<number, HydratedDocument<D>>;
@@ -82,6 +87,11 @@ export function tenantScopePlugin<D extends Document>(schema: Schema<D>): void {
         update: UpdateQuery<D>,
         options?: QueryOptions,
       ) => M.updateMany({ ...filter, tenantId: tid }, update, options),
+      findOneAndUpdate: (
+        filter: FilterQuery<D>,
+        update: UpdateQuery<D>,
+        options?: QueryOptions & { new?: boolean },
+      ) => M.findOneAndUpdate({ ...filter, tenantId: tid }, update, options),
       deleteMany: (filter: FilterQuery<D> = {} as FilterQuery<D>) =>
         M.deleteMany({ ...filter, tenantId: tid }),
       countDocuments: (filter: FilterQuery<D> = {} as FilterQuery<D>) =>

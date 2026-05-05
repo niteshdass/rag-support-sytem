@@ -10,6 +10,10 @@ const envSchema = z.object({
   QDRANT_URL: z.string().url().default('http://localhost:6333'),
   MEILI_URL: z.string().url().default('http://localhost:7700'),
   MEILI_MASTER_KEY: z.string().default(''),
+  LLM_PROVIDER: z.enum(['ollama', 'groq']).default('ollama'),
+  OLLAMA_URL: z.string().url().default('http://localhost:11434'),
+  OLLAMA_MODEL: z.string().default('llama3.1:8b'),
+  GROQ_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

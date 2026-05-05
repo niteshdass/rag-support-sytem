@@ -1,0 +1,35 @@
+[
+  {
+    "id": 2001,
+    "subject": "Cannot export data as CSV",
+    "description": "I am trying to export my project data but I keep getting an error saying the format is unsupported.",
+    "resolution": "Navigate to Settings > Data > Export and select CSV. If the option is greyed out, your current plan does not include bulk exports. Please upgrade to Growth or Enterprise, or contact support@acme-saas.com for assistance.",
+    "status": "solved",
+    "is_public": true,
+    "requester_id": 12345,
+    "tags": ["export", "csv", "data"],
+    "updated_at": "2026-04-10T12:00:00Z"
+  },
+  {
+    "id": 2002,
+    "subject": "Password reset email not received",
+    "description": "I requested a password reset 30 minutes ago but have not received the email. I have checked my inbox multiple times.",
+    "resolution": "Check your spam or junk folder first. Make sure you are using the exact email address registered to your account. Password reset links expire after 24 hours. If the issue persists, try from an incognito browser window or contact support.",
+    "status": "solved",
+    "is_public": true,
+    "requester_id": 12346,
+    "tags": ["password", "email", "reset", "login"],
+    "updated_at": "2026-04-11T09:00:00Z"
+  },
+  {
+    "id": 2003,
+    "subject": "Internal: Refund processed outside policy window",
+    "description": "Agent processed a full refund for a customer 45 days after purchase, which is outside our standard 30-day policy. This was caused by a billing system error that charged the customer twice.",
+    "resolution": "Escalated to billing team lead. One-time exception approved due to billing system fault. Credit issued and confirmed by customer. Engineering ticket opened to prevent duplicate charges. Updated internal SOP to require billing team sign-off for out-of-policy refunds.",
+    "status": "solved",
+    "is_public": false,
+    "requester_id": 99999,
+    "tags": ["refund", "billing", "internal", "exception"],
+    "updated_at": "2026-04-12T14:00:00Z"
+  }
+]
