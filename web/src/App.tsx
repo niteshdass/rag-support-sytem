@@ -3,6 +3,7 @@ import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
 import Activity from './pages/Activity'
 import Dashboard from './pages/Dashboard'
+import DocumentDetail from './pages/DocumentDetail'
 import Documents from './pages/Documents'
 import Login from './pages/Login'
 import Settings from './pages/Settings'
@@ -18,6 +19,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/documents/:id" element={<DocumentDetail />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/sources" element={<Sources />} />
             <Route path="/activity" element={<Activity />} />
