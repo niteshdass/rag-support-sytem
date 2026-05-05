@@ -6,6 +6,10 @@ import { assertSafeUri } from './safety.js';
 import { seedTenants } from './tenants.js';
 import { seedUsers } from './users.js';
 import { seedDocuments } from './documents.js';
+import { seedZendeskSource } from './sources.js';
+import { runSyncSource } from '../../src/jobs/syncSource.js';
+import type { JobQueue } from '../../src/domain/knowledge/documentService.js';
+import { runIngestDocument } from '../../src/jobs/ingestDocument.js';
 
 const args = process.argv.slice(2);
 const resetFlag = args.includes('--reset');
@@ -52,6 +56,37 @@ async function main(): Promise<void> {
 
   logger.info('seeding documents...');
   await seedDocuments(tenants);
+
+  logger.info('seeding Zendesk source...');
+  const zendeskResult = await seedZendeskSource(tenants);
+
+  if (zendeskResult) {
+    logger.info({ sourceId: zendeskResult.sourceId }, 'running Zendesk sync-source inline');
+
+    const pendingIngestIds: string[] = [];
+    const inlineQueue: JobQueue = {
+      async enqueue(_name: string, data: Record<string, unknown>) {
+        if (typeof data.documentId === 'string') pendingIngestIds.push(data.documentId);
+      },
+    };
+
+    await runSyncSource(zendeskResult.sourceId, inlineQueue);
+
+    if (pendingIngestIds.length > 0) {
+      logger.info({ count: pendingIngestIds.length }, 'running Zendesk ingest jobs inline');
+      const BATCH = 3;
+      for (let i = 0; i < pendingIngestIds.length; i += BATCH) {
+        const batch = pendingIngestIds.slice(i, i + BATCH);
+        await Promise.all(batch.map((id) => runIngestDocument(id)));
+        logger.info(
+          { done: Math.min(i + BATCH, pendingIngestIds.length), total: pendingIngestIds.length },
+          'Zendesk ingest batch complete',
+        );
+      }
+    } else {
+      logger.info('all Zendesk documents already ingested — nothing to process');
+    }
+  }
 
   logger.info({ tenantCount: tenants.length }, 'seed complete');
   await disconnect();
