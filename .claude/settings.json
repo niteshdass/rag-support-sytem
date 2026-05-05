@@ -17,7 +17,9 @@
       "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem commit -m ' *)",
       "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem status)",
       "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem diff)",
-      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem add .claude/settings.json .gitignore)"
+      "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem add .claude/settings.json .gitignore)",
+      "Bash(npm list *)",
+      "Bash(node -e \"import\\('@qdrant/js-client-rest'\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")"
     ]
   }
 }

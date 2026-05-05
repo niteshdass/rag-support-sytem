@@ -2,6 +2,7 @@ import MongoStore from 'connect-mongo';
 import express from 'express';
 import session from 'express-session';
 import { errorHandler } from './api/middleware/errorHandler.js';
+import { adminRouter } from './api/routes/admin/index.js';
 import { authRouter } from './api/routes/auth.js';
 import { env } from './config/env.js';
 import { connect, disconnect } from './infra/mongo/client.js';
@@ -30,6 +31,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/auth', authRouter);
+app.use('/admin', adminRouter);
 
 app.use(errorHandler);
 
