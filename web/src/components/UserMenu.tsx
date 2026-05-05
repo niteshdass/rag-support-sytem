@@ -34,12 +34,13 @@ export default function UserMenu() {
         className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
         aria-label="User menu"
         aria-expanded={open}
+        aria-haspopup="menu"
       >
         {initials(user.name)}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-56 z-50 bg-background border rounded-md shadow-md p-1">
+        <div className="absolute right-0 top-full mt-1 w-56 z-50 bg-background border rounded-md shadow-md p-1" role="menu">
           <div className="px-3 py-2">
             <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-xs text-muted-foreground mt-1 truncate">{user.email}</p>
@@ -51,6 +52,7 @@ export default function UserMenu() {
               'w-full text-left px-3 py-2 text-sm rounded-sm transition-colors',
               'text-destructive hover:bg-accent hover:text-destructive',
             )}
+            role="menuitem"
           >
             Sign out
           </button>
