@@ -28,6 +28,7 @@ router.post(
       const answer = await getPipeline().answer(query, {
         tenantId: req.tenantId!.toString(),
         audience: audience === 'agent' ? 'internal-agent' : 'end-user',
+        autoResolveEnabled: tenant.autoResolveEnabled,
         confidenceThreshold: tenant.confidenceThreshold,
         recentMessages: history,
       });

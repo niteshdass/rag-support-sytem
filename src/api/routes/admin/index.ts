@@ -3,6 +3,7 @@ import { activityRouter } from './activity.js';
 import { documentsRouter } from './documents.js';
 import { feedbackRouter } from './feedback.js';
 import { pasteRouter } from './paste.js';
+import { settingsRouter } from './settings.js';
 import { sourcesRouter } from './sources.js';
 import { uploadsRouter } from './uploads.js';
 
@@ -14,5 +15,6 @@ router.use('/sources', sourcesRouter);
 router.use('/uploads', uploadsRouter);
 router.use('/feedback', feedbackRouter);
 router.use('/activity', activityRouter);
+router.use('/settings', settingsRouter);
 
 export { router as adminRouter };

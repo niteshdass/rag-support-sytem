@@ -11,6 +11,7 @@ import { startTrace } from '../../observability/tracing.js';
 export interface TenantContext {
   tenantId: string;
   audience: 'end-user' | 'internal-agent';
+  autoResolveEnabled: boolean;
   confidenceThreshold: number;
   recentMessages?: string[];
 }
@@ -107,7 +108,9 @@ export class RAGPipeline {
     });
 
     const route: 'auto' | 'draft' =
-      !generated.escalate && confidence > ctx.confidenceThreshold ? 'auto' : 'draft';
+      ctx.autoResolveEnabled && !generated.escalate && confidence > ctx.confidenceThreshold
+        ? 'auto'
+        : 'draft';
 
     trace.end({ confidence, route, citationCount: generated.citations.length });
 
