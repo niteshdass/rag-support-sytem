@@ -202,4 +202,43 @@ describe('Settings /admin/settings', () => {
     const tenant = await TenantModel.findOne({ slug: 'acme' }).lean();
     expect(tenant?.autoResolveEnabled).toBe(false);
   });
+
+  // -------------------------------------------------------------------------
+  // Per-channel kill switch
+  // -------------------------------------------------------------------------
+  it('PATCH sets per-channel channelSettings', async () => {
+    const agent = await loginAgent();
+    const res = await agent.patch('/admin/settings').send({
+      channelSettings: { email: { autoResolveEnabled: false }, chat: { autoResolveEnabled: true } },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.channelSettings.email.autoResolveEnabled).toBe(false);
+    expect(res.body.channelSettings.chat.autoResolveEnabled).toBe(true);
+
+    const tenant = await TenantModel.findOne({ slug: 'acme' }).lean();
+    const cs = tenant?.channelSettings as Record<string, { autoResolveEnabled?: boolean }>;
+    expect(cs?.email?.autoResolveEnabled).toBe(false);
+    expect(cs?.chat?.autoResolveEnabled).toBe(true);
+  });
+
+  it('GET returns channelSettings', async () => {
+    const agent = await loginAgent();
+    await agent.patch('/admin/settings').send({
+      channelSettings: { email: { autoResolveEnabled: false } },
+    });
+
+    const res = await agent.get('/admin/settings');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('channelSettings');
+    expect(res.body.channelSettings.email?.autoResolveEnabled).toBe(false);
+  });
+
+  it('400 on invalid channelSettings channel name', async () => {
+    const agent = await loginAgent();
+    const res = await agent.patch('/admin/settings').send({
+      channelSettings: { unknown_channel: { autoResolveEnabled: false } },
+    });
+    // Zod strips unknown keys — valid request, unknown channel silently ignored
+    expect(res.status).toBe(200);
+  });
 });

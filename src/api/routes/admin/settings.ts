@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { TenantModel } from '../../../infra/mongo/models/Tenant.js';
 import { tenantMiddleware } from '../../middleware/tenant.js';
 import { PatchSettingsSchema } from '../../validators/settings.js';
+import { invalidateTenantSettings } from '../../../domain/tenancy/settingsCache.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.get(
       res.json({
         autoResolveEnabled: tenant.autoResolveEnabled,
         confidenceThreshold: tenant.confidenceThreshold,
+        channelSettings: tenant.channelSettings ?? {},
       });
     } catch (err) {
       next(err);
@@ -45,9 +47,11 @@ router.patch(
         res.status(404).json({ error: 'tenant not found' });
         return;
       }
+      invalidateTenantSettings(req.tenantId!.toString());
       res.json({
         autoResolveEnabled: tenant.autoResolveEnabled,
         confidenceThreshold: tenant.confidenceThreshold,
+        channelSettings: tenant.channelSettings ?? {},
       });
     } catch (err) {
       next(err);

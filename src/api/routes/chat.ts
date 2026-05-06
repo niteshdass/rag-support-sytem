@@ -3,9 +3,10 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import { apiKeyMiddleware } from '../middleware/apiKey.js';
 import { getPipeline } from '../../domain/rag/pipeline.factory.js';
-import { TenantModel } from '../../infra/mongo/models/Tenant.js';
 import { TicketModel } from '../../infra/mongo/models/Ticket.js';
 import { ConversationModel } from '../../infra/mongo/models/Conversation.js';
+import { getTenantSettings, channelAutoResolveEnabled } from '../../domain/tenancy/settingsCache.js';
+import { notifyEscalation } from '../../infra/notifications/slack.js';
 
 const router = Router();
 
@@ -85,8 +86,8 @@ router.post(
         return;
       }
 
-      const tenant = await TenantModel.findById(tenantId).lean();
-      if (!tenant) {
+      const settings = await getTenantSettings(tenantId);
+      if (!settings) {
         res.status(401).json({ error: 'tenant not found' });
         return;
       }
@@ -99,8 +100,8 @@ router.post(
       const answer = await getPipeline().answer(message, {
         tenantId,
         audience: 'end-user',
-        autoResolveEnabled: tenant.autoResolveEnabled,
-        confidenceThreshold: tenant.confidenceThreshold,
+        autoResolveEnabled: channelAutoResolveEnabled(settings, 'chat'),
+        confidenceThreshold: settings.confidenceThreshold,
         recentMessages: history,
       });
 
@@ -157,10 +158,25 @@ router.post(
         return;
       }
 
-      await TicketModel.forTenant(tenantId).findOneAndUpdate(
+      const ticket = await TicketModel.forTenant(tenantId).findOneAndUpdate(
         { _id: conversation.ticketId },
         { $set: { status: 'escalated' } },
+        { new: true, lean: true },
       );
+
+      if (ticket) {
+        const settings = await getTenantSettings(tenantId);
+        if (settings?.slackEscalationWebhookUrl) {
+          await notifyEscalation({
+            tenantId,
+            ticketId: (ticket._id as mongoose.Types.ObjectId).toString(),
+            channel: 'chat',
+            subject: ticket.subject,
+            customerEmail: ticket.customer?.email,
+            webhookUrl: settings.slackEscalationWebhookUrl,
+          });
+        }
+      }
 
       res.json({ ok: true });
     } catch (err) {

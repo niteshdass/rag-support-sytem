@@ -3,14 +3,21 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import type { Transporter } from 'nodemailer';
 
+vi.mock('../../src/infra/notifications/slack.js', () => ({
+  notifyEscalation: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   handleEmailMessage,
   type ParsedEmail,
   type EmailHandlerDeps,
   type EmailConfig,
 } from '../../src/channels/email/channel.js';
+import { notifyEscalation } from '../../src/infra/notifications/slack.js';
 import { TicketModel } from '../../src/infra/mongo/models/Ticket.js';
 import { ConversationModel } from '../../src/infra/mongo/models/Conversation.js';
+
+const notifyEscalationMock = vi.mocked(notifyEscalation);
 
 // ---------------------------------------------------------------------------
 // MongoDB setup
@@ -31,6 +38,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await TicketModel.deleteMany({});
   await ConversationModel.deleteMany({});
+  notifyEscalationMock.mockClear();
 });
 
 // ---------------------------------------------------------------------------
@@ -237,5 +245,142 @@ describe('handleEmailMessage — Re: prefix not doubled', () => {
 
     const mailCall = (deps.transporter.sendMail as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(mailCall.subject).toBe('Re: Cannot export CSV');
+  });
+});
+
+describe('handleEmailMessage — escape hatch footer', () => {
+  it('auto-reply includes ESCALATE footer', async () => {
+    const deps = makeDeps();
+    await handleEmailMessage(makeEmail(), deps);
+
+    const mailCall = (deps.transporter.sendMail as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(mailCall.text).toContain('ESCALATE');
+    expect(mailCall.text).toContain('human agent');
+  });
+});
+
+describe('handleEmailMessage — ESCALATE keyword escape hatch', () => {
+  it('marks existing ticket escalated when customer replies ESCALATE', async () => {
+    const originalMsgId = 'escalate-root@mail.example.com';
+    const ticket = await TicketModel.create({
+      tenantId: new mongoose.Types.ObjectId(TENANT_ID),
+      channel: 'email',
+      externalId: originalMsgId,
+      customer: { email: 'customer@acme.com', name: 'Alice' },
+      subject: 'Export issue',
+      body: 'First question',
+      status: 'auto_resolved',
+    });
+    const conv = await ConversationModel.create({
+      tenantId: new mongoose.Types.ObjectId(TENANT_ID),
+      ticketId: ticket._id,
+      messages: [],
+      confidenceScores: [],
+    });
+    await TicketModel.findByIdAndUpdate(ticket._id, { $set: { conversationId: conv._id } });
+
+    const escalateEmail = makeEmail({
+      messageId: '<escalate-reply@mail.example.com>',
+      inReplyTo: `<${originalMsgId}>`,
+      references: [originalMsgId],
+      bodyText: 'ESCALATE',
+    });
+
+    const deps = makeDeps({ slackEscalationWebhookUrl: 'https://hooks.slack.com/test' });
+    await handleEmailMessage(escalateEmail, deps);
+
+    const updated = await TicketModel.findById(ticket._id);
+    expect(updated!.status).toBe('escalated');
+
+    // RAG pipeline NOT called
+    expect((deps.pipeline.answer as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+
+    // Slack notification sent
+    expect(notifyEscalationMock).toHaveBeenCalledOnce();
+    const call = notifyEscalationMock.mock.calls[0][0] as {
+      channel: string;
+      webhookUrl: string;
+    };
+    expect(call.channel).toBe('email');
+    expect(call.webhookUrl).toBe('https://hooks.slack.com/test');
+  });
+
+  it('does not send Slack notification when no webhook configured', async () => {
+    const originalMsgId = 'no-webhook-root@mail.example.com';
+    const ticket = await TicketModel.create({
+      tenantId: new mongoose.Types.ObjectId(TENANT_ID),
+      channel: 'email',
+      externalId: originalMsgId,
+      customer: { email: 'customer@acme.com' },
+      subject: 'Some issue',
+      body: 'Question',
+      status: 'auto_resolved',
+    });
+    const conv = await ConversationModel.create({
+      tenantId: new mongoose.Types.ObjectId(TENANT_ID),
+      ticketId: ticket._id,
+      messages: [],
+      confidenceScores: [],
+    });
+    await TicketModel.findByIdAndUpdate(ticket._id, { $set: { conversationId: conv._id } });
+
+    const escalateEmail = makeEmail({
+      messageId: '<no-webhook-reply@mail.example.com>',
+      inReplyTo: `<${originalMsgId}>`,
+      references: [originalMsgId],
+      bodyText: 'ESCALATE',
+    });
+
+    // No slackEscalationWebhookUrl
+    await handleEmailMessage(escalateEmail, makeDeps());
+
+    const updated = await TicketModel.findById(ticket._id);
+    expect(updated!.status).toBe('escalated');
+    expect(notifyEscalationMock).not.toHaveBeenCalled();
+  });
+
+  it('ESCALATE keyword is case-insensitive', async () => {
+    const originalMsgId = 'case-root@mail.example.com';
+    const ticket = await TicketModel.create({
+      tenantId: new mongoose.Types.ObjectId(TENANT_ID),
+      channel: 'email',
+      externalId: originalMsgId,
+      customer: { email: 'customer@acme.com' },
+      subject: 'Issue',
+      body: 'Question',
+      status: 'auto_resolved',
+    });
+    const conv = await ConversationModel.create({
+      tenantId: new mongoose.Types.ObjectId(TENANT_ID),
+      ticketId: ticket._id,
+      messages: [],
+      confidenceScores: [],
+    });
+    await TicketModel.findByIdAndUpdate(ticket._id, { $set: { conversationId: conv._id } });
+
+    const escalateEmail = makeEmail({
+      messageId: '<case-reply@mail.example.com>',
+      inReplyTo: `<${originalMsgId}>`,
+      references: [originalMsgId],
+      bodyText: 'escalate',
+    });
+
+    await handleEmailMessage(escalateEmail, makeDeps());
+
+    const updated = await TicketModel.findById(ticket._id);
+    expect(updated!.status).toBe('escalated');
+  });
+
+  it('does NOT treat ESCALATE embedded in larger text as escape hatch', async () => {
+    const deps = makeDeps();
+    const email = makeEmail({
+      bodyText: 'Please ESCALATE this to your manager for review of my account settings.',
+    });
+
+    await handleEmailMessage(email, deps);
+
+    // Pipeline ran normally — ESCALATE is not alone on a line
+    expect((deps.pipeline.answer as ReturnType<typeof vi.fn>)).toHaveBeenCalledOnce();
+    expect(notifyEscalationMock).not.toHaveBeenCalled();
   });
 });

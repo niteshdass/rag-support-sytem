@@ -6,7 +6,10 @@ import { TenantModel } from '../../infra/mongo/models/Tenant.js';
 import { TicketModel } from '../../infra/mongo/models/Ticket.js';
 import { ConversationModel } from '../../infra/mongo/models/Conversation.js';
 import { getPipeline } from '../../domain/rag/pipeline.factory.js';
+import { notifyEscalation } from '../../infra/notifications/slack.js';
 import { logger } from '../../observability/logger.js';
+
+const ESCALATE_PATTERN = /^\s*ESCALATE\s*$/im;
 
 // ---------------------------------------------------------------------------
 // Per-tenant email configuration (stored in tenant.settings.email)
@@ -64,6 +67,7 @@ export interface EmailHandlerDeps {
   tenantId: string;
   autoResolveEnabled: boolean;
   confidenceThreshold: number;
+  slackEscalationWebhookUrl?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,6 +106,34 @@ export async function handleEmailMessage(
 ): Promise<void> {
   const { pipeline, transporter, config, tenantId, autoResolveEnabled, confidenceThreshold } = deps;
   const log = logger.child({ tenantId, messageId: email.messageId });
+
+  // Escape hatch: customer replied with ESCALATE keyword → skip RAG, mark ticket, notify
+  if (ESCALATE_PATTERN.test(email.bodyText)) {
+    const inReplyToId = email.inReplyTo ? stripAngles(email.inReplyTo) : undefined;
+    const candidateIds = [
+      ...(inReplyToId ? [inReplyToId] : []),
+      ...email.references,
+    ];
+    if (candidateIds.length > 0) {
+      const ticket = await TicketModel.forTenant(tenantId).findOneAndUpdate(
+        { channel: 'email', externalId: { $in: candidateIds } },
+        { $set: { status: 'escalated' } },
+        { new: true, lean: true },
+      );
+      if (ticket && deps.slackEscalationWebhookUrl) {
+        await notifyEscalation({
+          tenantId,
+          ticketId: (ticket._id as mongoose.Types.ObjectId).toString(),
+          channel: 'email',
+          subject: ticket.subject,
+          customerEmail: ticket.customer?.email,
+          webhookUrl: deps.slackEscalationWebhookUrl,
+        });
+      }
+      log.info('email: customer escalated via ESCALATE keyword');
+    }
+    return;
+  }
 
   // Collect all message-IDs from this thread to check for existing tickets
   const inReplyTo = email.inReplyTo ? stripAngles(email.inReplyTo) : undefined;
@@ -199,11 +231,13 @@ export async function handleEmailMessage(
       ? email.subject
       : `Re: ${email.subject}`;
 
+    const footer = '\n\n---\nIf this answer didn\'t help, reply to this email with just "ESCALATE" and a human agent will assist you.';
+
     await transporter.sendMail({
       from: config.fromAddress,
       to: email.fromAddress,
       subject,
-      text: answer.text,
+      text: answer.text + footer,
       inReplyTo: `<${originalId}>`,
       references: refsChain,
     });
@@ -262,7 +296,7 @@ async function processUnseen(
   tenantId: string,
   config: EmailConfig,
   transporter: Transporter,
-  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number },
+  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number; slackEscalationWebhookUrl?: string },
 ): Promise<void> {
   const pipeline = getPipeline();
   const deps: EmailHandlerDeps = {
@@ -272,6 +306,7 @@ async function processUnseen(
     tenantId,
     autoResolveEnabled: tenant.autoResolveEnabled,
     confidenceThreshold: tenant.confidenceThreshold,
+    slackEscalationWebhookUrl: tenant.slackEscalationWebhookUrl,
   };
 
   const uids = await client.search({ seen: false }, { uid: true });
@@ -302,7 +337,7 @@ async function processUnseen(
 export async function startEmailListener(
   tenantId: string,
   config: EmailConfig,
-  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number },
+  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number; slackEscalationWebhookUrl?: string },
 ): Promise<void> {
   if (activeClients.has(tenantId)) {
     logger.warn({ tenantId }, 'email: listener already running');
@@ -381,7 +416,11 @@ export async function startAllEmailListeners(): Promise<void> {
     await startEmailListener(
       (tenant._id as mongoose.Types.ObjectId).toString(),
       parsed.data,
-      { autoResolveEnabled: tenant.autoResolveEnabled, confidenceThreshold: tenant.confidenceThreshold },
+      {
+        autoResolveEnabled: tenant.autoResolveEnabled,
+        confidenceThreshold: tenant.confidenceThreshold,
+        slackEscalationWebhookUrl: (tenant.settings as Record<string, unknown>)?.slackEscalationWebhookUrl as string | undefined,
+      },
     );
   }
 }
