@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { purgeService } from '../../../domain/knowledge/purgeService.js';
 import { DocumentModel } from '../../../infra/mongo/models/Document.js';
 import { SourceModel } from '../../../infra/mongo/models/Source.js';
-import { getJobQueue } from '../../../jobs/index.js';
+import { getJobQueue, schedulePeriodicSync, cancelPeriodicSync } from '../../../jobs/index.js';
 import { tenantMiddleware } from '../../middleware/tenant.js';
 import { SourceCreateBodySchema, SourceListQuerySchema } from '../../validators/sources.js';
 
@@ -59,6 +59,11 @@ router.post(
         addedBy: new mongoose.Types.ObjectId(userId),
       });
 
+      if (type === 'connector' || type === 'crawl') {
+        const syncCron = (config as Record<string, unknown>).syncCron as string | undefined;
+        await schedulePeriodicSync(source._id.toString(), syncCron).catch(() => undefined);
+      }
+
       res.status(201).json(source);
     } catch (err) {
       next(err);
@@ -89,7 +94,8 @@ router.delete(
         return;
       }
 
-      // Soft-delete
+      // Cancel periodic sync and soft-delete
+      await cancelPeriodicSync(source._id.toString()).catch(() => undefined);
       await SourceModel.findByIdAndUpdate(source._id, { $set: { status: 'disabled' } });
 
       // Purge all related docs that aren't already purged/purging

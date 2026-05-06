@@ -1,0 +1,20 @@
+[
+  {
+    "id": "cf-001",
+    "title": "Onboarding Guide",
+    "url": "https://acme-saas.atlassian.net/wiki/spaces/DOCS/pages/cf-001",
+    "htmlBody": "<h1>Onboarding Guide</h1><p>Welcome to the Acme SaaS onboarding process. Follow these steps to get your account set up.</p><h2>Step 1: Create your account</h2><p>Visit the <strong>sign-up page</strong> and fill in your details. You will receive a confirmation email.</p><h2>Step 2: Invite your team</h2><p>Go to <em>Settings &rarr; Team</em> to invite colleagues by email.</p>"
+  },
+  {
+    "id": "cf-002",
+    "title": "API Reference Overview",
+    "url": "https://acme-saas.atlassian.net/wiki/spaces/DEV/pages/cf-002",
+    "htmlBody": "<h1>API Reference Overview</h1><p>The Acme SaaS REST API uses standard HTTP verbs. All responses are JSON.</p><h2>Authentication</h2><p>Pass your API key in the <code>Authorization: Bearer &lt;key&gt;</code> header.</p><h2>Rate limits</h2><p>Free tier: 100 requests/minute. Pro: 1000 requests/minute.</p>"
+  },
+  {
+    "id": "cf-003",
+    "title": "Troubleshooting Common Issues",
+    "url": "https://acme-saas.atlassian.net/wiki/spaces/SUPPORT/pages/cf-003",
+    "htmlBody": "<h1>Troubleshooting Common Issues</h1><h2>Login problems</h2><p>If you cannot log in, try clearing your browser cache or using an incognito window. If the issue persists, reset your password via <em>Forgot Password</em>.</p><h2>Slow performance</h2><p>Performance issues are often caused by browser extensions. Disable them one by one to identify the culprit.</p>"
+  }
+]

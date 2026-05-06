@@ -1,0 +1,80 @@
+[
+  {
+    "channelId": "C001SUPPORT",
+    "channelName": "support-team",
+    "thread": {
+      "parentTs": "1714000000.000001",
+      "messages": [
+        {
+          "ts": "1714000000.000001",
+          "user": "U001",
+          "text": "How do I reset a customer's 2FA if they lose their device?",
+          "reply_count": 2,
+          "reactions": []
+        },
+        {
+          "ts": "1714000100.000002",
+          "user": "U002",
+          "text": "Go to Admin → Users → find the customer → Security → Reset 2FA. They'll get an email to re-enroll.",
+          "reactions": [
+            { "name": "white_check_mark", "users": ["U003"], "count": 1 }
+          ]
+        },
+        {
+          "ts": "1714000200.000003",
+          "user": "U001",
+          "text": "Perfect, thanks!",
+          "reactions": []
+        }
+      ]
+    }
+  },
+  {
+    "channelId": "C001SUPPORT",
+    "channelName": "support-team",
+    "thread": {
+      "parentTs": "1714100000.000001",
+      "messages": [
+        {
+          "ts": "1714100000.000001",
+          "user": "U004",
+          "text": "Customer asking about GDPR data export. What's the process?",
+          "reply_count": 1,
+          "reactions": []
+        },
+        {
+          "ts": "1714100100.000002",
+          "user": "U005",
+          "text": "Settings → Privacy → Export My Data. It emails a download link within 24 hours. For immediate requests escalate to compliance@acme-saas.com",
+          "reactions": [
+            { "name": "white_check_mark", "users": ["U004"], "count": 1 }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "channelId": "C002ENGINEERING",
+    "channelName": "eng-support",
+    "thread": {
+      "parentTs": "1714200000.000001",
+      "messages": [
+        {
+          "ts": "1714200000.000001",
+          "user": "U006",
+          "text": "Webhook signatures failing for a customer on their integration. What should we check?",
+          "reply_count": 1,
+          "reactions": []
+        },
+        {
+          "ts": "1714200100.000002",
+          "user": "U007",
+          "text": "Check that they're using the raw request body (not parsed JSON) when computing the HMAC-SHA256. Also verify they haven't rotated the webhook secret without updating their code.",
+          "reactions": [
+            { "name": "white_check_mark", "users": ["U006"], "count": 1 }
+          ]
+        }
+      ]
+    }
+  }
+]

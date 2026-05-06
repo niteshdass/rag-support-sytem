@@ -1,0 +1,23 @@
+[
+  {
+    "externalId": "acme-org/acme-saas/README",
+    "title": "acme-saas README",
+    "url": "https://github.com/acme-org/acme-saas",
+    "content": "# Acme SaaS\n\nProject management for modern teams.\n\n## Quick start\n\n1. Sign up at acme-saas.com\n2. Create a project\n3. Invite your team\n\n## Documentation\n\nFull docs at docs.acme-saas.com",
+    "visibility": "customer-facing"
+  },
+  {
+    "externalId": "acme-org/acme-saas/docs/integrations.md",
+    "title": "integrations",
+    "url": "https://github.com/acme-org/acme-saas/blob/main/docs/integrations.md",
+    "content": "# Integrations\n\n## Slack\n\nConnect Slack to receive real-time task notifications.\n\n## GitHub\n\nLink pull requests and issues to Acme tasks automatically.\n\n## API\n\nUse the REST API to build custom integrations.",
+    "visibility": "customer-facing"
+  },
+  {
+    "externalId": "acme-org/acme-saas/issues/42",
+    "title": "[acme-saas] CSV export fails for large datasets",
+    "url": "https://github.com/acme-org/acme-saas/issues/42",
+    "content": "Title: CSV export fails for large datasets\nBody: When exporting more than 10,000 rows as CSV the download times out.\nResolution: Fixed in v2.3.1 — exports are now streamed server-side. Update to latest version.",
+    "visibility": "customer-facing"
+  }
+]

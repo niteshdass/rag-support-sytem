@@ -7,6 +7,8 @@ import { defineGenerateDraft } from './generateDraft.js';
 import type { JobQueue } from '../domain/knowledge/documentService.js';
 
 const JOB_COLLECTION = 'jobs';
+const SYNC_JOB_NAME = 'sync-source';
+const DEFAULT_SYNC_INTERVAL = 'every 6 hours';
 
 let _agenda: Agenda | null = null;
 let _ready: Promise<void> | null = null;
@@ -35,6 +37,24 @@ export function getJobQueue(): JobQueue {
       await job.save();
     },
   };
+}
+
+export async function schedulePeriodicSync(
+  sourceId: string,
+  syncCron?: string,
+): Promise<void> {
+  const agenda = getAgenda();
+  await _ready;
+  const interval = syncCron ?? DEFAULT_SYNC_INTERVAL;
+  await agenda.every(interval, SYNC_JOB_NAME, { sourceId }, { skipImmediate: true });
+  logger.info({ sourceId, interval }, 'periodic sync scheduled');
+}
+
+export async function cancelPeriodicSync(sourceId: string): Promise<void> {
+  const agenda = getAgenda();
+  await _ready;
+  const removed = await agenda.cancel({ name: SYNC_JOB_NAME, data: { sourceId } });
+  logger.info({ sourceId, removed }, 'periodic sync cancelled');
 }
 
 export async function startWorker(): Promise<void> {

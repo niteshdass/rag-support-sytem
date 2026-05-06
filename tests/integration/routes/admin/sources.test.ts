@@ -30,6 +30,8 @@ vi.mock('../../../../src/infra/storage/index.js', () => ({
 const enqueueMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 vi.mock('../../../../src/jobs/index.js', () => ({
   getJobQueue: vi.fn().mockReturnValue({ enqueue: enqueueMock }),
+  schedulePeriodicSync: vi.fn().mockResolvedValue(undefined),
+  cancelPeriodicSync: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { adminRouter } from '../../../../src/api/routes/admin/index.js';

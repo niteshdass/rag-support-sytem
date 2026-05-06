@@ -22,7 +22,11 @@
     "eval:diff": "tsx scripts/eval/evalDiff.ts"
   },
   "dependencies": {
+    "@notionhq/client": "^5.20.0",
+    "@octokit/rest": "^22.0.1",
     "@qdrant/js-client-rest": "^1.17.0",
+    "@slack/bolt": "^4.7.2",
+    "@slack/web-api": "^7.15.2",
     "@types/cheerio": "^1.0.0",
     "@types/express-session": "^1.19.0",
     "@types/multer": "^2.1.0",
@@ -32,6 +36,7 @@
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.0.0",
     "connect-mongo": "^6.0.0",
+    "crawlee": "^3.16.0",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "express-session": "^1.19.0",
