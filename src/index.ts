@@ -11,6 +11,10 @@ import { zendeskWebhookRouter } from './api/routes/webhooks/zendesk.js';
 import { env } from './config/env.js';
 import { connect, disconnect } from './infra/mongo/client.js';
 import { startWorker, stopWorker } from './jobs/index.js';
+import {
+  startAllEmailListeners,
+  stopAllEmailListeners,
+} from './channels/email/channel.js';
 import { logger } from './observability/logger.js';
 
 const app = express();
@@ -46,6 +50,7 @@ app.use(errorHandler);
 
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'shutting down');
+  await stopAllEmailListeners();
   await stopWorker();
   await disconnect();
   process.exit(0);
@@ -56,6 +61,7 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 await connect();
 await startWorker();
+await startAllEmailListeners();
 
 app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'SupportPilot API started');
