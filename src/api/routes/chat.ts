@@ -1,0 +1,172 @@
+import { Router, type NextFunction, type Request, type Response } from 'express';
+import mongoose from 'mongoose';
+import { z } from 'zod';
+import { apiKeyMiddleware } from '../middleware/apiKey.js';
+import { getPipeline } from '../../domain/rag/pipeline.factory.js';
+import { TenantModel } from '../../infra/mongo/models/Tenant.js';
+import { TicketModel } from '../../infra/mongo/models/Ticket.js';
+import { ConversationModel } from '../../infra/mongo/models/Conversation.js';
+
+const router = Router();
+
+router.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  next();
+});
+router.options('*', (_req, res) => res.sendStatus(204));
+
+// POST /chat/sessions — start a new widget session
+router.post(
+  '/sessions',
+  apiKeyMiddleware,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const tenantId = req.tenantId!.toString();
+    try {
+      const ticket = await TicketModel.create({
+        tenantId: new mongoose.Types.ObjectId(tenantId),
+        channel: 'chat',
+        externalId: crypto.randomUUID(),
+        customer: {},
+        subject: 'Chat widget session',
+        body: 'Chat widget session started',
+        status: 'new',
+      });
+
+      const conversation = await ConversationModel.create({
+        tenantId: new mongoose.Types.ObjectId(tenantId),
+        ticketId: ticket._id,
+        messages: [],
+        confidenceScores: [],
+      });
+
+      await TicketModel.findByIdAndUpdate(ticket._id, {
+        $set: { conversationId: conversation._id },
+      });
+
+      res.status(201).json({ sessionId: (conversation._id as mongoose.Types.ObjectId).toString() });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /chat/messages — send a message, get AI answer
+const MessageSchema = z.object({
+  sessionId: z.string().min(1),
+  message: z.string().min(1).max(2000),
+});
+
+router.post(
+  '/messages',
+  apiKeyMiddleware,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const parsed = MessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+
+    const { sessionId, message } = parsed.data;
+    const tenantId = req.tenantId!.toString();
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      res.status(404).json({ error: 'session not found' });
+      return;
+    }
+
+    try {
+      const conversation = await ConversationModel.forTenant(tenantId).findOne({
+        _id: new mongoose.Types.ObjectId(sessionId),
+      });
+      if (!conversation) {
+        res.status(404).json({ error: 'session not found' });
+        return;
+      }
+
+      const tenant = await TenantModel.findById(tenantId).lean();
+      if (!tenant) {
+        res.status(401).json({ error: 'tenant not found' });
+        return;
+      }
+
+      const history = conversation.messages
+        .slice(-10)
+        .map(m => `${m.role}: ${m.content}`);
+
+      // audience="end-user" — never exposes internal-only docs
+      const answer = await getPipeline().answer(message, {
+        tenantId,
+        audience: 'end-user',
+        autoResolveEnabled: tenant.autoResolveEnabled,
+        confidenceThreshold: tenant.confidenceThreshold,
+        recentMessages: history,
+      });
+
+      conversation.messages.push({ role: 'user', content: message, timestamp: new Date() });
+      conversation.messages.push({
+        role: 'assistant',
+        content: answer.text,
+        timestamp: new Date(),
+      });
+      conversation.confidenceScores.push(answer.confidence);
+      await conversation.save();
+
+      res.json({
+        text: answer.text,
+        citations: answer.citations,
+        confidence: answer.confidence,
+        route: answer.route,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /chat/escalate — "this didn't help" → route to human agent
+const EscalateSchema = z.object({
+  sessionId: z.string().min(1),
+});
+
+router.post(
+  '/escalate',
+  apiKeyMiddleware,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const parsed = EscalateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+
+    const { sessionId } = parsed.data;
+    const tenantId = req.tenantId!.toString();
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      res.status(404).json({ error: 'session not found' });
+      return;
+    }
+
+    try {
+      const conversation = await ConversationModel.forTenant(tenantId)
+        .findOne({ _id: new mongoose.Types.ObjectId(sessionId) })
+        .lean();
+      if (!conversation) {
+        res.status(404).json({ error: 'session not found' });
+        return;
+      }
+
+      await TicketModel.forTenant(tenantId).findOneAndUpdate(
+        { _id: conversation.ticketId },
+        { $set: { status: 'escalated' } },
+      );
+
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+export { router as chatRouter };
