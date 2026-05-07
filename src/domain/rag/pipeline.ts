@@ -7,6 +7,8 @@ import { score as scoreConfidence } from './confidence.js';
 import type { Visibility } from '../../infra/qdrant/client.js';
 import { logger } from '../../observability/logger.js';
 import { startTrace } from '../../observability/tracing.js';
+import { redact } from '../../utils/redact.js';
+import { env } from '../../config/env.js';
 
 export interface TenantContext {
   tenantId: string;
@@ -42,12 +44,15 @@ export class RAGPipeline {
     const traceId = randomUUID();
     const pipelineStart = Date.now();
 
+    // Redact query for tracing/logging; original used for retrieval quality
+    const safeQuery = await redact(query);
+
     const trace = startTrace({
       traceId,
       name: 'rag-pipeline',
       tenantId: ctx.tenantId,
       audience: ctx.audience,
-      input: { query },
+      input: { query: safeQuery },
     });
 
     // Step 1: Rewrite
@@ -93,8 +98,9 @@ export class RAGPipeline {
     // Step 5: Generate
     t = Date.now();
     const generateSpan = trace.span('generate', { contextChunks: reranked.length });
+    const queryForLLM = env.PII_BLOCK_LLM ? await redact(rewritten.text) : rewritten.text;
     const generated = await this.generator.generate({
-      query: rewritten.text,
+      query: queryForLLM,
       context: reranked,
       history: ctx.recentMessages,
     });

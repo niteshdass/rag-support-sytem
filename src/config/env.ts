@@ -17,6 +17,12 @@ const envSchema = z.object({
   LANGFUSE_HOST: z.string().url().optional(),
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_SECRET_KEY: z.string().optional(),
+  REDACT_URL: z.string().url().optional(),
+  PII_BLOCK_LLM: z
+    .string()
+    .optional()
+    .transform(v => v === 'true' || v === '1')
+    .default('false'),
   SLACK_BOT_TOKEN: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
   SLACK_APP_TOKEN: z.string().optional(),
