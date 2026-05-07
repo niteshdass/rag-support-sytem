@@ -19,7 +19,8 @@
       "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem diff)",
       "Bash(git -C /Users/niteshdas/Projects/rag-support-sytem add .claude/settings.json .gitignore)",
       "Bash(npm list *)",
-      "Bash(node -e \"import\\('@qdrant/js-client-rest'\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")"
+      "Bash(node -e \"import\\('@qdrant/js-client-rest'\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\),**d.get\\('devDependencies',{}\\)}; print\\(deps.get\\('pino','not found'\\)\\)\")"
     ]
   }
 }
