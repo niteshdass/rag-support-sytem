@@ -100,3 +100,13 @@ export async function deleteByFilter(
   const client = getClient();
   await client.delete(collection, { wait: true, filter });
 }
+
+export async function setPayloadForPoints(
+  collection: string,
+  ids: string[],
+  payload: Record<string, unknown>,
+): Promise<void> {
+  if (ids.length === 0) return;
+  const client = getClient();
+  await client.setPayload(collection, { payload, points: ids, wait: true });
+}

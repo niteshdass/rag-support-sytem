@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   listDocuments,
   deleteDocument,
@@ -43,6 +44,7 @@ type VisibilityTarget = { doc: Document } | null;
 
 export default function Documents() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [inputQ, setInputQ] = useState('');
   const [visibility, setVisibility] = useState<Visibility | ''>('');
@@ -204,7 +206,7 @@ export default function Documents() {
                 <DocumentRow
                   key={doc._id}
                   doc={doc}
-                  onView={() => window.open(doc.url, '_blank')}
+                  onView={() => navigate(`/documents/${doc._id}`)}
                   onChangeVisibility={() => setVisibilityTarget({ doc })}
                   onDelete={() => setDeleteTarget({ id: doc._id, title: doc.title })}
                 />

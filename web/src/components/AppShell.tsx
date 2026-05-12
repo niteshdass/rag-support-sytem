@@ -3,6 +3,7 @@ import { cn } from '../lib/utils'
 import UserMenu from './UserMenu'
 
 const NAV_ITEMS = [
+  { label: 'Dashboard', to: '/' },
   { label: 'Chat', to: '/chat' },
   { label: 'Documents', to: '/documents' },
   { label: 'Upload', to: '/upload' },

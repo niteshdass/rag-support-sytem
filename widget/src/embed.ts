@@ -12,7 +12,7 @@ if (scriptEl) {
     apiKey,
     apiUrl,
   });
-  const iframeSrc = `${baseUrl}/iframe.html?${params.toString()}`;
+  const iframeSrc = `${baseUrl}/chat.html?${params.toString()}`;
 
   const PANEL_W = 380;
   const PANEL_H = 580;

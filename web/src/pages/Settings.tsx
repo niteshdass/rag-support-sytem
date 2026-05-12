@@ -23,11 +23,15 @@ export default function Settings() {
     }
   }, [data]);
 
+  const [savedVisible, setSavedVisible] = useState(false);
+
   const mutation = useMutation({
     mutationFn: patchSettings,
     onSuccess: updated => {
       queryClient.setQueryData(['settings'], updated);
       setDirty(false);
+      setSavedVisible(true);
+      setTimeout(() => setSavedVisible(false), 3000);
     },
   });
 
@@ -143,7 +147,7 @@ export default function Settings() {
         >
           {mutation.isPending ? 'Saving…' : 'Save changes'}
         </button>
-        {mutation.isSuccess && !dirty && (
+        {savedVisible && !dirty && (
           <span className="text-sm text-green-600">Saved.</span>
         )}
         {mutation.isError && (

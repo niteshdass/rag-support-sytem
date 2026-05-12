@@ -14,6 +14,7 @@ Given a user query and optional recent conversation history, produce a rewritten
 Rules:
 - Resolve pronouns ("it", "this", "that") using the conversation history
 - Expand acronyms you can confidently infer from context (e.g. SSO → single sign-on)
+- Add common synonyms and alternate phrasings (e.g. "people" → also include "members", "attendees", "users"; "attended" → also "attending", "registered", "total")
 - Make the query self-contained and specific
 - Extract must-have terms that must appear in relevant documents
 - Identify the user intent in 3-5 words
@@ -46,7 +47,8 @@ export class QueryRewriter {
         maxTokens: 256,
       });
 
-      const parsed = JSON.parse(raw.trim()) as unknown;
+      const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      const parsed = JSON.parse(cleaned) as unknown;
 
       if (
         typeof parsed !== 'object' ||

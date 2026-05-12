@@ -96,11 +96,20 @@ router.post(
         { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
       );
 
+      const fileHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+      const documentService = new DocumentService(getJobQueue());
+
+      // Dedup: if a non-failed doc with the same content already exists, return it
+      const existing = await documentService.findByContentHash(tenantId, fileHash);
+      if (existing) {
+        res.status(200).json({ documentId: existing._id.toString(), status: existing.status, deduplicated: true });
+        return;
+      }
+
       const fileKey = `${crypto.randomUUID()}/${req.file.originalname}`;
       const storage = getStorage();
       await storage.put(tenantId, fileKey, req.file.buffer, req.file.mimetype);
 
-      const documentService = new DocumentService(getJobQueue());
       const doc = await documentService.add({
         tenantId,
         sourceId: source!._id.toString(),
@@ -108,6 +117,7 @@ router.post(
         title: req.file.originalname,
         fileKey,
         fileMimeType: req.file.mimetype,
+        contentHash: fileHash,
         visibility,
         addedBy: userId,
         tags,

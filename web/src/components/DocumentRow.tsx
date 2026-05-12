@@ -11,6 +11,14 @@ interface Props {
 }
 
 export default function DocumentRow({ doc, onView, onChangeVisibility, onDelete }: Props) {
+  function handleView() {
+    if (doc.url) {
+      window.open(doc.url, '_blank');
+    } else {
+      onView();
+    }
+  }
+
   return (
     <tr className="hover:bg-gray-50">
       <td className="max-w-xs px-4 py-3">
@@ -40,9 +48,8 @@ export default function DocumentRow({ doc, onView, onChangeVisibility, onDelete 
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-3">
           <button
-            onClick={onView}
-            disabled={!doc.url}
-            className="text-xs text-gray-600 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30"
+            onClick={handleView}
+            className="text-xs text-gray-600 hover:text-gray-900"
           >
             View
           </button>

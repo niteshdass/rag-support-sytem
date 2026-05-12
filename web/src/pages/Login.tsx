@@ -1,18 +1,21 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { login } from '../api/auth';
 import { ApiError } from '../api/client';
-import { AUTH_QUERY_KEY } from '../hooks/useAuth';
+import { AUTH_QUERY_KEY, useAuth } from '../hooks/useAuth';
 
 export default function Login() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAuthed, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tenantSlug, setTenantSlug] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  if (!authLoading && isAuthed) return <Navigate to="/" replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -60,9 +63,14 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             className="w-full px-3 py-2 border rounded-md text-sm bg-background"
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading}

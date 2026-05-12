@@ -154,7 +154,7 @@ export default function Activity() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Max</label>
+            <label className="mb-1 block text-xs text-gray-500">Max confidence</label>
             <div className="flex items-center gap-1.5">
               <input
                 type="range"

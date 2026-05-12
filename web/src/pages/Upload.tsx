@@ -23,7 +23,7 @@ const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
   { value: 'internal', label: 'Internal' },
 ];
 
-type UploadStatus = 'uploading' | 'processing' | 'ready' | 'failed';
+type UploadStatus = 'pending' | 'uploading' | 'processing' | 'ready' | 'failed';
 
 // Only serializable data in state — File objects live in fileMapRef
 interface FileEntry {
@@ -43,6 +43,7 @@ function formatBytes(bytes: number): string {
 
 function StatusPill({ status }: { status: UploadStatus }) {
   const styles: Record<UploadStatus, string> = {
+    pending: 'bg-gray-100 text-gray-600',
     uploading: 'bg-blue-100 text-blue-700',
     processing: 'bg-yellow-100 text-yellow-700',
     ready: 'bg-green-100 text-green-700',
@@ -62,7 +63,7 @@ function StatusPill({ status }: { status: UploadStatus }) {
 }
 
 export default function Upload() {
-  const [visibility, setVisibility] = useState<Visibility>('draft');
+  const [visibility, setVisibility] = useState<Visibility>('customer-facing');
   const [tagsInput, setTagsInput] = useState('');
   const [entries, setEntries] = useState<FileEntry[]>([]);
 
@@ -138,7 +139,7 @@ export default function Upload() {
       for (const file of accepted) {
         const id = crypto.randomUUID();
         fileMapRef.current.set(id, file);
-        newEntries.push({ id, fileName: file.name, fileSize: file.size, status: 'uploading' });
+        newEntries.push({ id, fileName: file.name, fileSize: file.size, status: 'pending' });
       }
 
       for (const { file, errors } of rejected) {
@@ -156,16 +157,20 @@ export default function Upload() {
       }
 
       setEntries((prev) => [...prev, ...newEntries]);
-
-      for (const entry of newEntries) {
-        if (entry.status === 'uploading') {
-          const file = fileMapRef.current.get(entry.id);
-          if (file) void processFile(entry.id, file);
-        }
-      }
     },
-    [processFile],
+    [],
   );
+
+  const handleUpload = useCallback(() => {
+    const pending = entries.filter((e) => e.status === 'pending');
+    setEntries((prev) =>
+      prev.map((e) => (e.status === 'pending' ? { ...e, status: 'uploading' } : e)),
+    );
+    for (const entry of pending) {
+      const file = fileMapRef.current.get(entry.id);
+      if (file) void processFile(entry.id, file);
+    }
+  }, [entries, processFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -265,6 +270,20 @@ export default function Upload() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {entries.some((e) => e.status === 'pending') && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleUpload}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            Save {entries.filter((e) => e.status === 'pending').length} file{entries.filter((e) => e.status === 'pending').length !== 1 ? 's' : ''} to Documents
+          </button>
         </div>
       )}
     </div>

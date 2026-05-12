@@ -4,6 +4,7 @@ import { ChunkModel } from '../../../infra/mongo/models/Chunk.js';
 import { DocumentModel } from '../../../infra/mongo/models/Document.js';
 import * as meili from '../../../infra/meilisearch/client.js';
 import { type Visibility } from '../../../infra/meilisearch/client.js';
+import * as qdrant from '../../../infra/qdrant/client.js';
 import { purgeService } from '../../../domain/knowledge/purgeService.js';
 import { tenantMiddleware } from '../../middleware/tenant.js';
 import { DocumentListQuerySchema, UpdateVisibilityBodySchema } from '../../validators/documents.js';
@@ -191,6 +192,27 @@ router.patch(
       if (!doc) {
         res.status(404).json({ error: 'document not found' });
         return;
+      }
+
+      const newVisibility = parsed.data.visibility;
+      const docObjectId = new mongoose.Types.ObjectId(id);
+
+      // Sync chunk visibility across all stores
+      const chunks = await ChunkModel.find({ tenantId, documentId: docObjectId }).lean();
+      if (chunks.length > 0) {
+        const qdrantIds = chunks.map(c => c.qdrantPointId).filter(Boolean) as string[];
+        const meiliDocs = chunks.map(c => ({
+          id: c._id.toString(),
+          text: c.text,
+          documentId: id,
+          visibility: newVisibility,
+        }));
+
+        await Promise.all([
+          ChunkModel.updateMany({ tenantId, documentId: docObjectId }, { $set: { visibility: newVisibility } }),
+          qdrantIds.length > 0 ? qdrant.setPayloadForPoints('chunks', qdrantIds, { visibility: newVisibility }) : Promise.resolve(),
+          meili.addDocs(tenantId, meiliDocs),
+        ]);
       }
 
       res.json(doc);

@@ -74,11 +74,8 @@ function validateCitations(
     return { valid: false, reason: `citation indices out of range: ${outOfRange.join(', ')}` };
   }
 
-  const paragraphs = answerText.split('\n').filter(p => p.trim().length > 0);
-  for (const para of paragraphs) {
-    if (!/\[\d+\]/.test(para)) {
-      return { valid: false, reason: `paragraph missing citation: "${para.slice(0, 80)}"` };
-    }
+  if (citationIndices.length === 0) {
+    return { valid: false, reason: 'answer has no citations' };
   }
 
   return { valid: true };
@@ -141,7 +138,9 @@ export class Generator {
 
     let parsed: z.infer<typeof LLMResponseSchema>;
     try {
-      parsed = LLMResponseSchema.parse(JSON.parse(raw.trim()));
+      // Strip markdown code fences that some models wrap around JSON
+      const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      parsed = LLMResponseSchema.parse(JSON.parse(cleaned));
     } catch (err) {
       logger.warn({ raw, err }, 'generator: failed to parse LLM response');
       return null;

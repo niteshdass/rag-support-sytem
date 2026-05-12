@@ -13,6 +13,7 @@ export interface DocumentAddInput {
   title?: string;
   url?: string;
   content?: string;
+  contentHash?: string;
   fileKey?: string;
   fileMimeType?: string;
   externalId?: string;
@@ -24,9 +25,22 @@ export interface DocumentAddInput {
 export class DocumentService {
   constructor(private readonly jobQueue: JobQueue) {}
 
+  async findByContentHash(
+    tenantId: string,
+    contentHash: string,
+  ): Promise<HydratedDocument<SupportDocument> | null> {
+    return DocumentModel.findOne({
+      tenantId: new mongoose.Types.ObjectId(tenantId),
+      contentHash,
+      status: { $in: ['processing', 'ready'] },
+    });
+  }
+
   async add(input: DocumentAddInput): Promise<HydratedDocument<SupportDocument>> {
     const content = input.content ?? '';
-    const contentHash = content ? crypto.createHash('sha256').update(content).digest('hex') : '';
+    const contentHash =
+      input.contentHash ??
+      (content ? crypto.createHash('sha256').update(content).digest('hex') : '');
 
     const tenantId = new mongoose.Types.ObjectId(input.tenantId);
     const sourceId = new mongoose.Types.ObjectId(input.sourceId);
@@ -58,7 +72,8 @@ export class DocumentService {
       );
       doc = result as HydratedDocument<SupportDocument>;
     } else {
-      doc = await DocumentModel.create(fields);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      doc = await DocumentModel.create(fields as any);
     }
 
     await this.jobQueue.enqueue('ingest-document', { documentId: doc._id.toString() });
