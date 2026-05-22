@@ -55,6 +55,7 @@ router.get(
           _id: { $in: orderedIds.map(id => new mongoose.Types.ObjectId(id)) },
         };
         if (status) mongoFilter.status = status;
+        else mongoFilter.status = { $ne: 'purged' };
         if (sourceType) mongoFilter.sourceType = sourceType;
         if (sourceId) mongoFilter.sourceId = new mongoose.Types.ObjectId(sourceId);
 
@@ -74,6 +75,7 @@ router.get(
       if (sourceId) mongoFilter.sourceId = new mongoose.Types.ObjectId(sourceId);
       if (sourceType) mongoFilter.sourceType = sourceType;
       if (status) mongoFilter.status = status;
+      else mongoFilter.status = { $ne: 'purged' };
 
       const skip = (page - 1) * pageSize;
 
@@ -216,6 +218,40 @@ router.patch(
       }
 
       res.json(doc);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.delete(
+  '/',
+  tenantMiddleware,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const tenantId = req.tenantId!.toString();
+    const actorId = req.user!._id.toString();
+
+    const ids: unknown = req.body?.ids;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ error: 'ids must be a non-empty array' });
+      return;
+    }
+
+    const valid = (ids as unknown[]).filter(
+      (id): id is string => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id),
+    );
+    if (valid.length === 0) {
+      res.status(400).json({ error: 'no valid document ids provided' });
+      return;
+    }
+
+    try {
+      const results = await Promise.allSettled(
+        valid.map(id => purgeService.purge(tenantId, id, actorId)),
+      );
+      const deleted = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      res.json({ deleted, failed });
     } catch (err) {
       next(err);
     }

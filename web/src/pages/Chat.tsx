@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { sendQuery, type Citation, type QueryResponse } from '../api/query'
+import { sendQuery, createSession, getSession, type Citation } from '../api/query'
 import { cn } from '../lib/utils'
 
 type Audience = 'end-user' | 'agent'
@@ -13,6 +13,8 @@ interface Message {
   confidence?: number
   route?: 'auto' | 'draft'
 }
+
+const SESSION_KEY = 'supportpilot_chat_session'
 
 function CitationList({ citations }: { citations: Citation[] }) {
   if (!citations.length) return null
@@ -44,16 +46,53 @@ function ConfidenceBadge({ confidence, route }: { confidence: number; route: 'au
 }
 
 export default function Chat() {
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [audience, setAudience] = useState<Audience>('agent')
+  const [sessionReady, setSessionReady] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const mutation = useMutation<QueryResponse, Error, string>({
-    mutationFn: (query) =>
+  useEffect(() => {
+    const stored = localStorage.getItem(SESSION_KEY)
+
+    if (stored) {
+      getSession(stored)
+        .then(({ messages: saved }) => {
+          setSessionId(stored)
+          setMessages(
+            saved.map((m) => ({
+              id: crypto.randomUUID(),
+              role: m.role === 'agent' ? 'assistant' : m.role,
+              content: m.content,
+            })),
+          )
+        })
+        .catch(() => {
+          // session gone (deleted tenant, purged) — start fresh
+          localStorage.removeItem(SESSION_KEY)
+          return createSession().then(({ sessionId: id }) => {
+            localStorage.setItem(SESSION_KEY, id)
+            setSessionId(id)
+          })
+        })
+        .finally(() => setSessionReady(true))
+    } else {
+      createSession()
+        .then(({ sessionId: id }) => {
+          localStorage.setItem(SESSION_KEY, id)
+          setSessionId(id)
+        })
+        .finally(() => setSessionReady(true))
+    }
+  }, [])
+
+  const mutation = useMutation({
+    mutationFn: (query: string) =>
       sendQuery({
         query,
         audience,
+        sessionId: sessionId ?? undefined,
         history: messages
           .filter((m) => m.role === 'user')
           .slice(-10)
@@ -63,7 +102,7 @@ export default function Chat() {
       setMessages((prev) => [
         ...prev,
         {
-          id: data.traceId,
+          id: data.traceId ?? crypto.randomUUID(),
           role: 'assistant',
           content: data.text,
           citations: data.citations,
@@ -86,7 +125,7 @@ export default function Chat() {
 
   function submit() {
     const q = input.trim()
-    if (!q || mutation.isPending) return
+    if (!q || mutation.isPending || !sessionReady) return
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), role: 'user', content: q },
@@ -102,6 +141,17 @@ export default function Chat() {
     }
   }
 
+  function newSession() {
+    localStorage.removeItem(SESSION_KEY)
+    setMessages([])
+    setSessionReady(false)
+    createSession().then(({ sessionId: id }) => {
+      localStorage.setItem(SESSION_KEY, id)
+      setSessionId(id)
+      setSessionReady(true)
+    })
+  }
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, mutation.isPending])
@@ -113,28 +163,38 @@ export default function Chat() {
           <h1 className="text-lg font-semibold">Chat</h1>
           <p className="text-sm text-muted-foreground">Ask anything — powered by your knowledge base</p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border p-1">
-          {(['agent', 'end-user'] as Audience[]).map((a) => (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg border p-1">
+            {(['agent', 'end-user'] as Audience[]).map((a) => (
+              <button
+                key={a}
+                onClick={() => setAudience(a)}
+                className={cn(
+                  'rounded px-3 py-1 text-xs font-medium transition-colors',
+                  audience === a
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {a === 'agent' ? 'Agent (internal)' : 'End-user'}
+              </button>
+            ))}
+          </div>
+          {messages.length > 0 && (
             <button
-              key={a}
-              onClick={() => setAudience(a)}
-              className={cn(
-                'rounded px-3 py-1 text-xs font-medium transition-colors',
-                audience === a
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
+              onClick={newSession}
+              className="rounded px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground border transition-colors"
             >
-              {a === 'agent' ? 'Agent (internal)' : 'End-user'}
+              New chat
             </button>
-          ))}
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto rounded-lg border bg-muted/20 p-4 space-y-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !mutation.isPending && (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            No messages yet. Ask a question below.
+            {sessionReady ? 'No messages yet. Ask a question below.' : 'Initialising session…'}
           </div>
         )}
         {messages.map((m) => (
@@ -179,13 +239,14 @@ export default function Chat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKey}
-          placeholder="Ask a question… (Enter to send, Shift+Enter for newline)"
+          placeholder={sessionReady ? 'Ask a question… (Enter to send, Shift+Enter for newline)' : 'Initialising…'}
           rows={2}
-          className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          disabled={!sessionReady}
+          className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
         />
         <button
           onClick={submit}
-          disabled={!input.trim() || mutation.isPending}
+          disabled={!input.trim() || mutation.isPending || !sessionReady}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
         >
           Send

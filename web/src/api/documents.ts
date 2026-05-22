@@ -50,6 +50,13 @@ export function deleteDocument(id: string): Promise<{ ok: true }> {
   return apiFetch<{ ok: true }>(`/admin/documents/${id}`, { method: 'DELETE' });
 }
 
+export function bulkDeleteDocuments(ids: string[]): Promise<{ deleted: number; failed: number }> {
+  return apiFetch<{ deleted: number; failed: number }>('/admin/documents', {
+    method: 'DELETE',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export function updateVisibility(id: string, visibility: Visibility): Promise<Document> {
   return apiFetch<Document>(`/admin/documents/${id}/visibility`, {
     method: 'PATCH',

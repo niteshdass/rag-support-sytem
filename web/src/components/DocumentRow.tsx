@@ -5,12 +5,14 @@ import StatusBadge from './StatusBadge';
 
 interface Props {
   doc: Document;
+  selected: boolean;
+  onToggleSelect: () => void;
   onView: () => void;
   onChangeVisibility: () => void;
   onDelete: () => void;
 }
 
-export default function DocumentRow({ doc, onView, onChangeVisibility, onDelete }: Props) {
+export default function DocumentRow({ doc, selected, onToggleSelect, onView, onChangeVisibility, onDelete }: Props) {
   function handleView() {
     if (doc.url) {
       window.open(doc.url, '_blank');
@@ -20,7 +22,15 @@ export default function DocumentRow({ doc, onView, onChangeVisibility, onDelete 
   }
 
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className={selected ? 'bg-indigo-50' : 'hover:bg-gray-50'}>
+      <td className="w-10 px-4 py-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="h-4 w-4 rounded border-gray-300 accent-indigo-600 cursor-pointer"
+        />
+      </td>
       <td className="max-w-xs px-4 py-3">
         <Link
           to={`/documents/${doc._id}`}
@@ -47,16 +57,10 @@ export default function DocumentRow({ doc, onView, onChangeVisibility, onDelete 
       </td>
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={handleView}
-            className="text-xs text-gray-600 hover:text-gray-900"
-          >
+          <button onClick={handleView} className="text-xs text-gray-600 hover:text-gray-900">
             View
           </button>
-          <button
-            onClick={onChangeVisibility}
-            className="text-xs text-indigo-600 hover:text-indigo-800"
-          >
+          <button onClick={onChangeVisibility} className="text-xs text-indigo-600 hover:text-indigo-800">
             Visibility
           </button>
           <button onClick={onDelete} className="text-xs text-red-600 hover:text-red-800">

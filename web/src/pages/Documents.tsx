@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   listDocuments,
   deleteDocument,
+  bulkDeleteDocuments,
   updateVisibility,
   type Document,
   type Visibility,
@@ -53,10 +54,13 @@ export default function Documents() {
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [visibilityTarget, setVisibilityTarget] = useState<VisibilityTarget>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   const q = useDebounce(inputQ, 300);
 
   useEffect(() => { setPage(1); }, [q, visibility, sourceType, status]);
+  useEffect(() => { setSelected(new Set()); }, [page, q, visibility, sourceType, status]);
 
   const queryKey = ['documents', { q, visibility, sourceType, status, page }] as const;
 
@@ -82,6 +86,15 @@ export default function Documents() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteDocuments(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      setSelected(new Set());
+      setShowBulkConfirm(false);
+    },
+  });
+
   const visibilityMutation = useMutation({
     mutationFn: ({ id, vis }: { id: string; vis: Visibility }) => updateVisibility(id, vis),
     onSuccess: () => {
@@ -93,6 +106,34 @@ export default function Documents() {
   const docs = data?.results ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const allPageSelected = docs.length > 0 && docs.every(d => selected.has(d._id));
+  const somePageSelected = docs.some(d => selected.has(d._id));
+
+  function toggleAll() {
+    if (allPageSelected) {
+      setSelected(prev => {
+        const next = new Set(prev);
+        docs.forEach(d => next.delete(d._id));
+        return next;
+      });
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev);
+        docs.forEach(d => next.add(d._id));
+        return next;
+      });
+    }
+  }
+
+  function toggleOne(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -172,6 +213,29 @@ export default function Documents() {
         </select>
       </div>
 
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-2.5">
+          <span className="text-sm font-medium text-red-700">
+            {selected.size} document{selected.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Clear selection
+            </button>
+            <button
+              onClick={() => setShowBulkConfirm(true)}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+            >
+              Delete {selected.size} document{selected.size !== 1 ? 's' : ''}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         {isLoading && (
@@ -193,6 +257,15 @@ export default function Documents() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    ref={el => { if (el) el.indeterminate = somePageSelected && !allPageSelected; }}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-gray-300 accent-indigo-600 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3">Title</th>
                 <th className="px-4 py-3">Source</th>
                 <th className="px-4 py-3">Visibility</th>
@@ -206,6 +279,8 @@ export default function Documents() {
                 <DocumentRow
                   key={doc._id}
                   doc={doc}
+                  selected={selected.has(doc._id)}
+                  onToggleSelect={() => toggleOne(doc._id)}
                   onView={() => navigate(`/documents/${doc._id}`)}
                   onChangeVisibility={() => setVisibilityTarget({ doc })}
                   onDelete={() => setDeleteTarget({ id: doc._id, title: doc.title })}
@@ -241,7 +316,7 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Delete confirm */}
+      {/* Single delete confirm */}
       {deleteTarget && (
         <DeleteConfirmDialog
           title={deleteTarget.title}
@@ -249,6 +324,35 @@ export default function Documents() {
           onCancel={() => setDeleteTarget(null)}
           isPending={deleteMutation.isPending}
         />
+      )}
+
+      {/* Bulk delete confirm */}
+      {showBulkConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowBulkConfirm(false)} />
+          <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="text-base font-semibold text-gray-900">Delete {selected.size} documents?</h2>
+            <p className="mt-2 text-sm text-gray-500">
+              This will permanently remove {selected.size} document{selected.size !== 1 ? 's' : ''} including all chunks, vectors, and cached responses. This cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setShowBulkConfirm(false)}
+                disabled={bulkDeleteMutation.isPending}
+                className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => bulkDeleteMutation.mutate([...selected])}
+                disabled={bulkDeleteMutation.isPending}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {bulkDeleteMutation.isPending ? 'Deleting…' : `Delete ${selected.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Visibility change */}
