@@ -25,7 +25,7 @@ describe('env — QDRANT_API_KEY', () => {
 
   it('rejects empty string QDRANT_API_KEY', async () => {
     process.env.QDRANT_API_KEY = '';
-    expect(() => import('../../../src/config/env.js')).rejects.toThrow();
+    await expect(() => import('../../../src/config/env.js')).rejects.toThrow();
   });
 
   it('allows QDRANT_API_KEY to be absent', async () => {
