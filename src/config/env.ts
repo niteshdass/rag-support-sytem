@@ -8,7 +8,7 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   STORAGE_DRIVER: z.enum(['local']).default('local'),
   QDRANT_URL: z.string().url().default('http://localhost:6333'),
-  QDRANT_API_KEY: z.string().optional(),
+  QDRANT_API_KEY: z.string().min(1).optional(),
   MEILI_URL: z.string().url().default('http://localhost:7700'),
   MEILI_MASTER_KEY: z.string().default(''),
   LLM_PROVIDER: z.enum(['ollama', 'groq']).default('ollama'),

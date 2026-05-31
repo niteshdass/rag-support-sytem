@@ -13,6 +13,7 @@ describe('env — QDRANT_API_KEY', () => {
   });
 
   afterEach(() => {
+    vi.resetModules();
     process.env = originalEnv;
   });
 
@@ -20,6 +21,11 @@ describe('env — QDRANT_API_KEY', () => {
     process.env.QDRANT_API_KEY = 'secret-key-abc';
     const { env } = await import('../../../src/config/env.js');
     expect(env.QDRANT_API_KEY).toBe('secret-key-abc');
+  });
+
+  it('rejects empty string QDRANT_API_KEY', async () => {
+    process.env.QDRANT_API_KEY = '';
+    expect(() => import('../../../src/config/env.js')).rejects.toThrow();
   });
 
   it('allows QDRANT_API_KEY to be absent', async () => {
