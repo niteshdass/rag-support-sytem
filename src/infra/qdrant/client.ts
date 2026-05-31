@@ -27,8 +27,9 @@ let _client: QdrantClient | null = null;
 function getClient(): QdrantClient {
   if (!_client) {
     const url = process.env.QDRANT_URL ?? 'http://localhost:6333';
-    _client = new QdrantClient({ url, checkCompatibility: false });
-    logger.info({ url }, 'qdrant client initialised');
+    const apiKey = process.env.QDRANT_API_KEY;
+    _client = new QdrantClient({ url, apiKey, checkCompatibility: false });
+    logger.info({ url, hasApiKey: !!apiKey }, 'qdrant client initialised');
   }
   return _client;
 }
