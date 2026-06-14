@@ -103,7 +103,7 @@ router.get(
     const tenantId = req.tenantId!.toString();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(404).json({ error: 'document not found' });
       return;
     }
@@ -138,7 +138,7 @@ router.get(
     const tenantId = req.tenantId!.toString();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(404).json({ error: 'document not found' });
       return;
     }
@@ -171,7 +171,7 @@ router.patch(
     const tenantId = req.tenantId!.toString();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(404).json({ error: 'document not found' });
       return;
     }
@@ -266,7 +266,7 @@ router.delete(
     const actorId = req.user!._id.toString();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(404).json({ error: 'document not found' });
       return;
     }

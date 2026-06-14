@@ -1,7 +1,6 @@
 import mongoose, {
   type Document,
   type FilterQuery,
-  type HydratedDocument,
   type Model,
   type QueryOptions,
   type Schema,
@@ -11,29 +10,29 @@ import { logger } from '../../../observability/logger.js';
 
 export type TenantId = mongoose.Types.ObjectId | string;
 
+// D extends Document, so it already carries both the schema fields and the
+// document methods. Typing the queries with D (not HydratedDocument<D>) keeps
+// .lean() able to recover the field shape instead of collapsing to FlattenMaps<unknown>.
+// The 4th Query generic (RawDocType) is what .lean() reads to recover the plain
+// object shape. Passing D there keeps `forTenant(...).findOne(...).lean()` typed as
+// the document fields instead of collapsing to FlattenMaps<unknown>.
 export interface TenantScope<D extends Document> {
-  find(
-    filter?: FilterQuery<D>,
-  ): mongoose.Query<HydratedDocument<D>[], HydratedDocument<D>>;
-  findOne(
-    filter?: FilterQuery<D>,
-  ): mongoose.Query<HydratedDocument<D> | null, HydratedDocument<D>>;
+  find(filter?: FilterQuery<D>): mongoose.Query<D[], D, {}, D>;
+  findOne(filter?: FilterQuery<D>): mongoose.Query<D | null, D, {}, D>;
   updateMany(
     filter: FilterQuery<D>,
     update: UpdateQuery<D>,
     options?: QueryOptions,
-  ): mongoose.Query<mongoose.UpdateWriteOpResult, HydratedDocument<D>>;
+  ): mongoose.Query<mongoose.UpdateWriteOpResult, D, {}, D>;
   deleteMany(
     filter?: FilterQuery<D>,
-  ): mongoose.Query<mongoose.mongo.DeleteResult, HydratedDocument<D>>;
+  ): mongoose.Query<mongoose.mongo.DeleteResult, D, {}, D>;
   findOneAndUpdate(
     filter: FilterQuery<D>,
     update: UpdateQuery<D>,
     options?: QueryOptions & { new?: boolean },
-  ): mongoose.Query<HydratedDocument<D> | null, HydratedDocument<D>>;
-  countDocuments(
-    filter?: FilterQuery<D>,
-  ): mongoose.Query<number, HydratedDocument<D>>;
+  ): mongoose.Query<D | null, D, {}, D>;
+  countDocuments(filter?: FilterQuery<D>): mongoose.Query<number, D, {}, D>;
 }
 
 export interface WithTenantScope<D extends Document> extends Model<D> {
@@ -86,7 +85,12 @@ export function tenantScopePlugin<D extends Document>(schema: Schema<D>): void {
         filter: FilterQuery<D>,
         update: UpdateQuery<D>,
         options?: QueryOptions,
-      ) => M.updateMany({ ...filter, tenantId: tid }, update, options),
+      ) =>
+        M.updateMany(
+          { ...filter, tenantId: tid },
+          update,
+          options as Parameters<typeof M.updateMany>[2],
+        ),
       findOneAndUpdate: (
         filter: FilterQuery<D>,
         update: UpdateQuery<D>,

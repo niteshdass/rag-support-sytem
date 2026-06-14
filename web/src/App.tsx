@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Activity from './pages/Activity'
 import Chat from './pages/Chat'
 import Dashboard from './pages/Dashboard'
+import Inbox from './pages/Inbox'
 import DocumentDetail from './pages/DocumentDetail'
 import Documents from './pages/Documents'
 import Login from './pages/Login'
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/paste" element={<Paste />} />
             <Route path="/sources" element={<Sources />} />
             <Route path="/activity" element={<Activity />} />
+            <Route path="/inbox" element={<Inbox />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

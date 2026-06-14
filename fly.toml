@@ -1,0 +1,35 @@
+# Fly.io config — Path A alternative (always-on, no idle spin-down).
+# Better than Render free when you need persistent email IMAP / Slack socket listeners.
+# Needs a card on file but the smallest shared-cpu-1x 256MB machine is effectively free.
+#
+# Secrets are NOT here — set them with:  fly secrets set MONGODB_URI=... SESSION_SECRET=...
+# First deploy:  fly launch --no-deploy   then   fly deploy
+
+app = "supportpilot-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  LLM_PROVIDER = "groq"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.checks]
+    [[http_service.checks]]
+      method = "GET"
+      path = "/health"
+      interval = "30s"
+      timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

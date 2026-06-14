@@ -4,6 +4,7 @@ import UserMenu from './UserMenu'
 
 const NAV_ITEMS = [
   { label: 'Dashboard', to: '/' },
+  { label: 'Inbox', to: '/inbox' },
   { label: 'Chat', to: '/chat' },
   { label: 'Documents', to: '/documents' },
   { label: 'Upload', to: '/upload' },

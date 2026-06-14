@@ -1,0 +1,38 @@
+# Render blueprint — Path A deploy (recommended free start).
+# One web service runs the API + worker in a single process. Free plan spins the
+# service down after ~15 min idle and cold-starts on the next request (acceptable
+# for a free launch; upgrade to a paid instance for always-on email/Slack listeners).
+#
+# Secrets (sync:false) are entered once in the Render dashboard — never committed.
+# Managed data services are external free tiers; see docs/deployment-path-a.md.
+
+services:
+  - type: web
+    name: supportpilot-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # --- secrets: set in dashboard ---
+      - key: MONGODB_URI          # MongoDB Atlas free 512MB connection string
+        sync: false
+      - key: SESSION_SECRET       # openssl rand -hex 32
+        sync: false
+      - key: QDRANT_URL           # Qdrant Cloud free cluster URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: MEILI_URL            # Meilisearch Cloud free project URL
+        sync: false
+      - key: MEILI_MASTER_KEY
+        sync: false
+      - key: LLM_PROVIDER         # use hosted LLM in the cloud (no Ollama)
+        value: groq
+      - key: GROQ_API_KEY         # console.groq.com free tier
+        sync: false

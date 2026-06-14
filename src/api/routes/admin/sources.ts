@@ -79,7 +79,7 @@ router.delete(
     const actorId = req.user!._id.toString();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(404).json({ error: 'source not found' });
       return;
     }
@@ -119,7 +119,7 @@ router.post(
     const tenantId = req.tenantId!.toString();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(404).json({ error: 'source not found' });
       return;
     }

@@ -19,6 +19,12 @@ import { logger } from './observability/logger.js';
 
 const app = express();
 
+// Behind a TLS-terminating proxy (Render/Fly/Vercel rewrite) in production.
+// Required so `secure` session cookies are set and req.protocol reflects X-Forwarded-Proto.
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(express.json());
 
 app.use(
