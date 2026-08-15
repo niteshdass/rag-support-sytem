@@ -54,7 +54,7 @@ router.post(
       });
 
       let ticketDoc = ticketId
-        ? await TicketModel.findOne({ tenantId, channel: 'zendesk', externalId: ticketId }).lean()
+        ? await TicketModel.findOne({ tenantId, channel: 'zendesk', externalId: ticketId })
         : null;
 
       if (!ticketDoc && ticketId) {

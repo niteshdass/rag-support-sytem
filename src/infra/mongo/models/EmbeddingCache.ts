@@ -1,8 +1,10 @@
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 const TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
-export interface EmbeddingCache extends Document {
+// Plain document shape — NOT `extends Document`, because the `model` field would
+// collide with Mongoose's built-in Document.model and break the schema generic.
+export interface EmbeddingCache {
   contentHash: string;
   model: string;
   vector: number[];

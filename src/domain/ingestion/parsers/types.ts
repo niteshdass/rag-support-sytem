@@ -1,7 +1,7 @@
 export type ParsedDocument = {
-  title?: string;
+  title?: string | undefined;
   content: string;
-  metadata?: object;
+  metadata?: object | undefined;
 };
 
 export interface Parser {

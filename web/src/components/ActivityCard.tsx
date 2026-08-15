@@ -76,7 +76,7 @@ export default function ActivityCard({ item }: Props) {
             </div>
             <p className="truncate text-sm font-medium text-gray-900">{item.subject}</p>
             <p className="mt-0.5 truncate text-xs text-gray-500">
-              {item.customer.name ?? item.customer.email} · {item.channel}
+              {item.customer?.name ?? item.customer?.email ?? 'Anonymous'} · {item.channel}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">

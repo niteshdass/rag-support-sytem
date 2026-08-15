@@ -67,7 +67,7 @@ export interface EmailHandlerDeps {
   tenantId: string;
   autoResolveEnabled: boolean;
   confidenceThreshold: number;
-  slackEscalationWebhookUrl?: string;
+  slackEscalationWebhookUrl?: string | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -296,7 +296,7 @@ async function processUnseen(
   tenantId: string,
   config: EmailConfig,
   transporter: Transporter,
-  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number; slackEscalationWebhookUrl?: string },
+  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number; slackEscalationWebhookUrl?: string | undefined },
 ): Promise<void> {
   const pipeline = getPipeline();
   const deps: EmailHandlerDeps = {
@@ -337,7 +337,7 @@ async function processUnseen(
 export async function startEmailListener(
   tenantId: string,
   config: EmailConfig,
-  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number; slackEscalationWebhookUrl?: string },
+  tenant: { autoResolveEnabled: boolean; confidenceThreshold: number; slackEscalationWebhookUrl?: string | undefined },
 ): Promise<void> {
   if (activeClients.has(tenantId)) {
     logger.warn({ tenantId }, 'email: listener already running');

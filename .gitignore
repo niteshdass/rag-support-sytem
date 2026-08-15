@@ -14,6 +14,8 @@ meilisearch
 # Runtime data dirs
 data.ms/
 storage/
+snapshots/
+dumps/
 .qdrant-initialized
 
 # Tool dirs

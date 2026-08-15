@@ -4,8 +4,8 @@ export interface EscalationNotification {
   tenantId: string;
   ticketId: string;
   channel: string;
-  subject?: string;
-  customerEmail?: string;
+  subject?: string | undefined;
+  customerEmail?: string | undefined;
   webhookUrl: string;
 }
 

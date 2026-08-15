@@ -5,6 +5,7 @@ import { apiKeyMiddleware } from '../middleware/apiKey.js';
 import { getPipeline } from '../../domain/rag/pipeline.factory.js';
 import { TicketModel } from '../../infra/mongo/models/Ticket.js';
 import { ConversationModel } from '../../infra/mongo/models/Conversation.js';
+import { DraftModel } from '../../infra/mongo/models/Draft.js';
 import { getTenantSettings, channelAutoResolveEnabled } from '../../domain/tenancy/settingsCache.js';
 import { notifyEscalation } from '../../infra/notifications/slack.js';
 
@@ -113,6 +114,40 @@ router.post(
       });
       conversation.confidenceScores.push(answer.confidence);
       await conversation.save();
+
+      // Persist draft so Activity feed can display this chat turn with citations
+      const ticket = await TicketModel.forTenant(tenantId).findOne({ _id: conversation.ticketId });
+      if (ticket) {
+        // Use first user message as ticket subject
+        if (ticket.subject === 'Chat widget session') {
+          await TicketModel.forTenant(tenantId).findOneAndUpdate(
+            { _id: ticket._id },
+            { $set: { subject: message.slice(0, 120) } },
+          );
+        }
+        const citations = answer.citations.map(c => ({
+          documentId: new mongoose.Types.ObjectId(c.documentId),
+          chunkId: new mongoose.Types.ObjectId(c.chunkId),
+          score: c.score,
+          snippet: c.snippet,
+        }));
+        if (citations.length > 0) {
+          await DraftModel.create({
+            tenantId: new mongoose.Types.ObjectId(tenantId),
+            ticketId: ticket._id,
+            text: answer.text,
+            citations,
+            confidence: answer.confidence,
+            route: answer.route,
+            ...(answer.route === 'auto' ? { sentAt: new Date() } : {}),
+          });
+          const nextStatus = answer.route === 'auto' ? 'auto_resolved' : 'drafted';
+          await TicketModel.forTenant(tenantId).findOneAndUpdate(
+            { _id: ticket._id },
+            { $set: { status: nextStatus } },
+          );
+        }
+      }
 
       res.json({
         text: answer.text,

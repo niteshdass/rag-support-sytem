@@ -21,7 +21,7 @@ export interface GeneratorResult {
 export interface GenerateParams {
   query: string;
   context: RankedChunk[];
-  history?: string[];
+  history?: string[] | undefined;
 }
 
 const LLMResponseSchema = z.object({

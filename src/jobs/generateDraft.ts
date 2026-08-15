@@ -43,6 +43,7 @@ export async function runGenerateDraft(ticketId: string): Promise<void> {
   const answer = await getPipeline().answer(ticket.body, {
     tenantId,
     audience: 'internal-agent',
+    autoResolveEnabled: tenant.autoResolveEnabled,
     confidenceThreshold: tenant.confidenceThreshold,
     recentMessages,
   });
