@@ -34,6 +34,14 @@ Mid-market SaaS support teams drown in repetitive tickets — roughly 70% of inc
 
 ![Chat with RAG citation](docs/screenshots/chat-rag.png)
 
+**Document detail — full extracted content, visibility, and processing status per source:**
+
+![Document detail](docs/screenshots/document-detail.png)
+
+| Connected sources | Drag-and-drop upload | Auto-resolve safety controls |
+|---|---|---|
+| ![Sources](docs/screenshots/sources.png) | ![Upload](docs/screenshots/upload.png) | ![Settings](docs/screenshots/settings.png) |
+
 ---
 
 ## How it works
